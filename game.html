@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>PixiJS — Модульная архитектура | Панель разработчика</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: #2a2418;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+            font-family: 'Segoe UI', system-ui, -apple-system, monospace;
+        }
+
+        .game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #1e1912;
+        }
+
+        canvas {
+            display: block;
+            box-shadow: 0 0 0 2px rgba(210, 180, 140, 0.2), 0 20px 35px rgba(0, 0, 0, 0.3);
+        }
+
+        /* ========== СЛУЖЕБНАЯ ПАНЕЛЬ РАЗРАБОТЧИКА ========== */
+        /* Панель находится поверх canvas, но не является игровым элементом */
+        .dev-panel {
+            position: fixed;
+            bottom: 16px;
+            left: 16px;
+            right: 16px;
+            background: rgba(30, 25, 18, 0.85);
+            backdrop-filter: blur(12px);
+            border-radius: 24px;
+            padding: 12px 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid rgba(210, 180, 140, 0.3);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+            font-size: 14px;
+            font-weight: 500;
+            pointer-events: auto; /* Чтобы можно было взаимодействовать */
+        }
+
+        .dev-control {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 180px;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 8px 16px;
+            border-radius: 20px;
+            backdrop-filter: blur(4px);
+        }
+
+        .dev-control label {
+            display: flex;
+            justify-content: space-between;
+            color: #FDF4E3;
+            font-size: 13px;
+            letter-spacing: 0.5px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+
+        .dev-control label span:first-child {
+            font-weight: 600;
+            color: #FFE4B5;
+        }
+
+        .dev-control label span:last-child {
+            font-family: 'Monaco', 'Menlo', monospace;
+            background: #1e1912;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            color: #F5DEB3;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 4px;
+            -webkit-appearance: none;
+            background: #3a3024;
+            border-radius: 4px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        input[type="range"]:focus {
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #F5DEB3;
+            border: 1px solid #D4A373;
+            cursor: pointer;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+        }
+
+        .value-unit {
+            font-size: 10px;
+            color: #C9B28B;
+            text-align: right;
+            margin-top: 2px;
+        }
+
+        @media (max-width: 600px) {
+            .dev-panel {
+                padding: 10px 16px;
+                gap: 12px;
+                bottom: 12px;
+                left: 12px;
+                right: 12px;
+            }
+            .dev-control {
+                min-width: 140px;
+                padding: 6px 12px;
+            }
+            .dev-control label {
+                font-size: 11px;
+            }
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@7.4.2/dist/pixi.min.js"></script>
+</head>
+<body>
+<div class="game-container" id="gameContainer"></div>
+
+<!-- СЛУЖЕБНАЯ ПАНЕЛЬ РАЗРАБОТЧИКА (не игровая, только для отладки) -->
+<div class="dev-panel" id="devPanel">
+    <div class="dev-control">
+        <label>
+            <span>⚫ Диаметр кругов</span>
+            <span id="diameterValue">0.00</span>
+        </label>
+        <input type="range" id="diameterSlider" min="0.05" max="0.25" step="0.001" value="0.10">
+        <div class="value-unit">отн. ширина экрана (1.0 = 100%)</div>
+    </div>
+    <div class="dev-control">
+        <label>
+            <span>🔄 Расстояние между центрами</span>
+            <span id="distanceValue">0.00</span>
+        </label>
+        <input type="range" id="distanceSlider" min="0.8" max="2.5" step="0.005" value="1.50">
+        <div class="value-unit">множитель диаметра (×диам.)</div>
+    </div>
+</div>
+
+<script>
+    // ========================
+    // МОДУЛЬ 1: Окно и рендерер (WindowManager)
+    // Отвечает за создание Pixi приложения, управление размерами и соотношением 9:16
+    // ========================
+    const WindowManager = (function() {
+        const TARGET_ASPECT = 9 / 16; // 9:16 вертикальный режим
+        
+        let app = null;
+        let container = null;
+        let canvasElement = null;
+        
+        // События изменения размера
+        const resizeCallbacks = [];
+        
+        function init(containerId) {
+            container = document.getElementById(containerId);
+            if (!container) {
+                console.error('Container not found');
+                return null;
+            }
+            
+            app = new PIXI.Application({
+                backgroundColor: 0xF5E6D3,
+                antialias: true,
+                resolution: window.devicePixelRatio || 1,
+                autoDensity: true,
+                resizeTo: null,
+            });
+            
+            container.appendChild(app.view);
+            canvasElement = app.view;
+            canvasElement.style.position = 'absolute';
+            
+            // Установка начального размера
+            resize();
+            
+            // Подписка на события окна
+            let resizeTimeout;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(() => {
+                    resize();
+                    notifyResizeCallbacks();
+                }, 100);
+            });
+            
+            window.addEventListener('orientationchange', () => {
+                setTimeout(() => {
+                    resize();
+                    notifyResizeCallbacks();
+                }, 30);
+            });
+            
+            return app;
+        }
+        
+        function resize() {
+            if (!app) return;
+            
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+            
+            let targetWidth, targetHeight;
+            let candidateWidth = windowWidth;
+            let candidateHeight = candidateWidth / TARGET_ASPECT;
+            
+            if (candidateHeight > windowHeight) {
+                candidateHeight = windowHeight;
+                candidateWidth = candidateHeight * TARGET_ASPECT;
+            }
+            
+            targetWidth = candidateWidth;
+            targetHeight = candidateHeight;
+            
+            app.renderer.resize(targetWidth, targetHeight);
+            
+            canvasElement.style.width = `${targetWidth}px`;
+            canvasElement.style.height = `${targetHeight}px`;
+            canvasElement.style.left = '50%';
+            canvasElement.style.top = '50%';
+            canvasElement.style.transform = 'translate(-50%, -50%)';
+            canvasElement.style.position = 'absolute';
+        }
+        
+        function onResize(callback) {
+            if (typeof callback === 'function') {
+                resizeCallbacks.push(callback);
+            }
+        }
+        
+        function notifyResizeCallbacks() {
+            if (!app) return;
+            const width = app.renderer.width;
+            const height = app.renderer.height;
+            resizeCallbacks.forEach(cb => cb(width, height));
+        }
+        
+        function getApp() {
+            return app;
+        }
+        
+        function getStage() {
+            return app ? app.stage : null;
+        }
+        
+        function getWidth() {
+            return app ? app.renderer.width : 0;
+        }
+        
+        function getHeight() {
+            return app ? app.renderer.height : 0;
+        }
+        
+        return {
+            init,
+            onResize,
+            getApp,
+            getStage,
+            getWidth,
+            getHeight,
+            resize
+        };
+    })();
+    
+    // ========================
+    // МОДУЛЬ 2: Фон и частицы (BackgroundAndParticles)
+    // Отвечает за градиентный фон и мерцающие частицы
+    // ========================
+    const BackgroundAndParticles = (function() {
+        let gradientSprite = null;
+        let particlesContainer = null;
+        let stage = null;
+        let animationRunning = false;
+        let animationId = null;
+        
+        // Создание бежевого градиента
+        function createBeigeGradientTexture(width, height) {
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            
+            const gradient = ctx.createLinearGradient(0, 0, width * 0.7, height);
+            gradient.addColorStop(0, '#FDF4E3');
+            gradient.addColorStop(0.3, '#F9E7C2');
+            gradient.addColorStop(0.6, '#F3D9B1');
+            gradient.addColorStop(1, '#E8CBA6');
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, width, height);
+            
+            // Лёгкая текстура
+            const imageData = ctx.getImageData(0, 0, width, height);
+            const data = imageData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                const noise = (Math.random() - 0.5) * 6;
+                data[i] = Math.min(255, Math.max(0, data[i] + noise));
+                data[i+1] = Math.min(255, Math.max(0, data[i+1] + noise * 0.8));
+                data[i+2] = Math.min(255, Math.max(0, data[i+2] + noise * 0.5));
+            }
+            ctx.putImageData(imageData, 0, 0);
+            
+            return PIXI.Texture.from(canvas);
+        }
+        
+        function updateGradient(width, height) {
+            if (!stage) return;
+            if (width === 0 || height === 0) return;
+            
+            const newTexture = createBeigeGradientTexture(width, height);
+            if (gradientSprite) {
+                const oldTexture = gradientSprite.texture;
+                gradientSprite.texture = newTexture;
+                if (oldTexture) oldTexture.destroy(true);
+            } else {
+                gradientSprite = new PIXI.Sprite(newTexture);
+                gradientSprite.position.set(0, 0);
+                stage.addChildAt(gradientSprite, 0);
+            }
+        }
+        
+        function createParticles(width, height) {
+            if (!stage) return;
+            
+            if (particlesContainer) {
+                stage.removeChild(particlesContainer);
+                particlesContainer.destroy({ children: true });
+            }
+            
+            if (width === 0 || height === 0) return;
+            
+            particlesContainer = new PIXI.Container();
+            const particleCount = Math.min(250, Math.max(120, Math.floor(width * height / 8000)));
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = new PIXI.Graphics();
+                const size = 1 + Math.random() * 2.5;
+                const colors = [0xFDE6C4, 0xFAD9A7, 0xFFE5B4, 0xFCD5A5, 0xF5DEB3, 0xFFF0D4];
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                
+                particle.beginFill(color, 0.5 + Math.random() * 0.4);
+                particle.drawCircle(0, 0, size);
+                particle.endFill();
+                
+                particle.x = Math.random() * width;
+                particle.y = Math.random() * height;
+                
+                particle._baseAlpha = 0.4 + Math.random() * 0.6;
+                particle._phase = Math.random() * Math.PI * 2;
+                particle._originalScale = 0.8 + Math.random() * 0.7;
+                particle.scale.set(particle._originalScale);
+                particle.alpha = particle._baseAlpha;
+                
+                particlesContainer.addChild(particle);
+            }
+            
+            stage.addChild(particlesContainer);
+        }
+        
+        function animateParticles() {
+            if (!particlesContainer) return;
+            
+            const now = Date.now() / 1000;
+            for (let i = 0; i < particlesContainer.children.length; i++) {
+                const p = particlesContainer.children[i];
+                if (p._baseAlpha) {
+                    const alphaFactor = 0.6 + 0.4 * Math.sin(now * 1.5 + p._phase);
+                    p.alpha = p._baseAlpha * (0.5 + alphaFactor * 0.5);
+                    const scaleVar = p._originalScale * (0.9 + 0.1 * Math.sin(now * 2 + p._phase));
+                    p.scale.set(scaleVar);
+                }
+            }
+        }
+        
+        function startAnimation() {
+            if (animationRunning) return;
+            animationRunning = true;
+            
+            function animate() {
+                if (!animationRunning) return;
+                animateParticles();
+                animationId = requestAnimationFrame(animate);
+            }
+            animate();
+        }
+        
+        function stopAnimation() {
+            animationRunning = false;
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+        }
+        
+        function init(stageRef) {
+            stage = stageRef;
+            if (!stage) return false;
+            
+            startAnimation();
+            return true;
+        }
+        
+        function resize(width, height) {
+            updateGradient(width, height);
+            createParticles(width, height);
+        }
+        
+        function destroy() {
+            stopAnimation();
+            if (gradientSprite && stage) stage.removeChild(gradientSprite);
+            if (particlesContainer && stage) stage.removeChild(particlesContainer);
+            gradientSprite = null;
+            particlesContainer = null;
+        }
+        
+        return {
+            init,
+            resize,
+            destroy
+        };
+    })();
+    
+    // ========================
+    // МОДУЛЬ 3: Игровые объекты (GameObjects)
+    // Отвечает за отображение и поведение кругов (центральный и вращающийся)
+    // Теперь с поддержкой динамических параметров: диаметр (relativeWidth) и множитель расстояния
+    // ========================
+    const GameObjects = (function() {
+        let centralCircle = null;
+        let orbitingCircle = null;
+        let stage = null;
+        
+        // Динамические параметры (в относительных единицах)
+        let diameterRatio = 0.10;        // 0.10 = 10% от ширины экрана (диаметр)
+        let distanceMultiplier = 1.50;    // множитель диаметра для расстояния между центрами
+        
+        let currentScreenWidth = 0;
+        let currentScreenHeight = 0;
+        
+        let circleDiameter = 0;
+        let circleRadius = 0;
+        let orbitRadius = 0;
+        let rotationAngle = 0;
+        
+        let centerX = 0;
+        let centerY = 0;
+        
+        const ANGULAR_SPEED = (2 * Math.PI) / 3; // 1 оборот за 3 секунды
+        
+        let lastTimestamp = 0;
+        let animationRunning = false;
+        let animationId = null;
+        
+        // Создание круга (без привязки к конкретным значениям)
+        function createStyledCircle(baseColor, borderColor, hasHighlight = true) {
+            const circle = new PIXI.Graphics();
+            if (circleRadius <= 0) return circle;
+            
+            circle.beginFill(baseColor);
+            circle.drawCircle(0, 0, circleRadius);
+            circle.endFill();
+            
+            circle.lineStyle(2, borderColor, 0.7);
+            circle.drawCircle(0, 0, circleRadius);
+            
+            if (hasHighlight && circleRadius > 4) {
+                circle.beginFill(0xFAD9A7, 0.4);
+                circle.drawCircle(-circleRadius * 0.25, -circleRadius * 0.25, circleRadius * 0.35);
+                circle.endFill();
+            }
+            return circle;
+        }
+        
+        function recreateCircles() {
+            if (!stage) return;
+            
+            // Удаляем старые объекты
+            if (centralCircle) stage.removeChild(centralCircle);
+            if (orbitingCircle) stage.removeChild(orbitingCircle);
+            
+            if (circleRadius <= 0) return;
+            
+            centralCircle = createStyledCircle(0xE8C39E, 0xD4A373, true);
+            orbitingCircle = createStyledCircle(0xF5D6A8, 0xDDB788, true);
+            
+            if (centralCircle) {
+                centralCircle.x = centerX;
+                centralCircle.y = centerY;
+                stage.addChild(centralCircle);
+            }
+            
+            if (orbitingCircle) {
+                // начальная позиция согласно текущему углу
+                orbitingCircle.x = centerX + Math.cos(rotationAngle) * orbitRadius;
+                orbitingCircle.y = centerY + Math.sin(rotationAngle) * orbitRadius;
+                stage.addChild(orbitingCircle);
+            }
+        }
+        
+        function updateGeometry() {
+            if (currentScreenWidth === 0) return;
+            
+            // Вычисляем реальные размеры на основе текущей ширины экрана и коэффициентов
+            circleDiameter = currentScreenWidth * diameterRatio;
+            circleRadius = Math.max(1, circleDiameter / 2);
+            orbitRadius = circleDiameter * distanceMultiplier;
+            
+            centerX = currentScreenWidth / 2;
+            centerY = currentScreenHeight / 2;
+        }
+        
+        function rebuild() {
+            if (!stage || currentScreenWidth === 0) return;
+            
+            updateGeometry();
+            recreateCircles();
+        }
+        
+        function updateOrbitPosition() {
+            if (!orbitingCircle || !centralCircle) return;
+            orbitingCircle.x = centerX + Math.cos(rotationAngle) * orbitRadius;
+            orbitingCircle.y = centerY + Math.sin(rotationAngle) * orbitRadius;
+        }
+        
+        function animationLoop(timestamp) {
+            if (!animationRunning) return;
+            
+            if (lastTimestamp !== 0) {
+                const delta = timestamp - lastTimestamp;
+                if (delta > 0 && delta < 100) {
+                    const deltaSec = delta / 1000;
+                    rotationAngle += ANGULAR_SPEED * deltaSec;
+                    if (rotationAngle > Math.PI * 2) rotationAngle -= Math.PI * 2;
+                    updateOrbitPosition();
+                }
+            }
+            lastTimestamp = timestamp;
+            
+            animationId = requestAnimationFrame(animationLoop);
+        }
+        
+        function startAnimation() {
+            if (animationRunning) return;
+            animationRunning = true;
+            lastTimestamp = 0;
+            animationId = requestAnimationFrame(animationLoop);
+        }
+        
+        function stopAnimation() {
+            animationRunning = false;
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+        }
+        
+        // Публичные методы для изменения параметров
+        function setDiameterRatio(ratio) {
+            diameterRatio = Math.min(0.35, Math.max(0.05, ratio));
+            rebuild();
+        }
+        
+        function setDistanceMultiplier(mult) {
+            distanceMultiplier = Math.min(3.0, Math.max(0.8, mult));
+            rebuild();
+        }
+        
+        function getDiameterRatio() {
+            return diameterRatio;
+        }
+        
+        function getDistanceMultiplier() {
+            return distanceMultiplier;
+        }
+        
+        function resize(width, height) {
+            currentScreenWidth = width;
+            currentScreenHeight = height;
+            rebuild();
+        }
+        
+        function init(stageRef) {
+            stage = stageRef;
+            if (!stage) return false;
+            
+            const width = WindowManager.getWidth();
+            const height = WindowManager.getHeight();
+            if (width && height) {
+                currentScreenWidth = width;
+                currentScreenHeight = height;
+                rebuild();
+            }
+            
+            startAnimation();
+            return true;
+        }
+        
+        function destroy() {
+            stopAnimation();
+            if (centralCircle && stage) stage.removeChild(centralCircle);
+            if (orbitingCircle && stage) stage.removeChild(orbitingCircle);
+            centralCircle = null;
+            orbitingCircle = null;
+        }
+        
+        return {
+            init,
+            resize,
+            destroy,
+            setDiameterRatio,
+            setDistanceMultiplier,
+            getDiameterRatio,
+            getDistanceMultiplier
+        };
+    })();
+    
+    // ========================
+    // ГЛАВНЫЙ МОДУЛЬ ПРИЛОЖЕНИЯ (App)
+    // Координирует работу всех модулей + подключает панель разработчика
+    // ========================
+    const App = (function() {
+        let isInitialized = false;
+        
+        function init() {
+            if (isInitialized) return;
+            
+            const pixiApp = WindowManager.init('gameContainer');
+            if (!pixiApp) {
+                console.error('Failed to initialize WindowManager');
+                return;
+            }
+            
+            const stage = WindowManager.getStage();
+            
+            // Инициализация модулей
+            BackgroundAndParticles.init(stage);
+            GameObjects.init(stage);
+            
+            // Подписка на изменение размера окна
+            WindowManager.onResize((width, height) => {
+                BackgroundAndParticles.resize(width, height);
+                GameObjects.resize(width, height);
+                // Обновляем значения на панели (для информации)
+                updateDevPanelValues();
+            });
+            
+            // Первоначальный вызов resize
+            const initialWidth = WindowManager.getWidth();
+            const initialHeight = WindowManager.getHeight();
+            if (initialWidth && initialHeight) {
+                BackgroundAndParticles.resize(initialWidth, initialHeight);
+                GameObjects.resize(initialWidth, initialHeight);
+            }
+            
+            // Инициализация панели разработчика
+            initDevPanel();
+            
+            isInitialized = true;
+            console.log('✅ Приложение запущено. Панель разработчика активна (диаметр / расстояние).');
+        }
+        
+        function initDevPanel() {
+            const diameterSlider = document.getElementById('diameterSlider');
+            const distanceSlider = document.getElementById('distanceSlider');
+            const diameterValue = document.getElementById('diameterValue');
+            const distanceValue = document.getElementById('distanceValue');
+            
+            if (!diameterSlider || !distanceSlider) return;
+            
+            // Устанавливаем текущие значения из GameObjects
+            const currentDiameter = GameObjects.getDiameterRatio();
+            const currentDistance = GameObjects.getDistanceMultiplier();
+            
+            diameterSlider.value = currentDiameter;
+            distanceSlider.value = currentDistance;
+            
+            diameterValue.textContent = currentDiameter.toFixed(3);
+            distanceValue.textContent = currentDistance.toFixed(3);
+            
+            // Обработчики событий
+            diameterSlider.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                diameterValue.textContent = val.toFixed(3);
+                GameObjects.setDiameterRatio(val);
+            });
+            
+            distanceSlider.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                distanceValue.textContent = val.toFixed(3);
+                GameObjects.setDistanceMultiplier(val);
+            });
+        }
+        
+        function updateDevPanelValues() {
+            const diameterValue = document.getElementById('diameterValue');
+            const distanceValue = document.getElementById('distanceValue');
+            const diameterSlider = document.getElementById('diameterSlider');
+            const distanceSlider = document.getElementById('distanceSlider');
+            
+            if (diameterValue && diameterSlider) {
+                const diam = GameObjects.getDiameterRatio();
+                diameterValue.textContent = diam.toFixed(3);
+                diameterSlider.value = diam;
+            }
+            if (distanceValue && distanceSlider) {
+                const dist = GameObjects.getDistanceMultiplier();
+                distanceValue.textContent = dist.toFixed(3);
+                distanceSlider.value = dist;
+            }
+        }
+        
+        function destroy() {
+            if (!isInitialized) return;
+            GameObjects.destroy();
+            BackgroundAndParticles.destroy();
+            isInitialized = false;
+        }
+        
+        return {
+            init,
+            destroy
+        };
+    })();
+    
+    // Запуск приложения
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            App.init();
+        });
+    } else {
+        App.init();
+    }
+</script>
+</body>
+</html>

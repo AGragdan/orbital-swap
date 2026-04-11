@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Orbital Swap — Редактор уровней</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        .game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #0f0f23;
+        }
+
+        canvas {
+            display: block;
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.15), 0 20px 35px rgba(0, 0, 0, 0.5);
+            border-radius: 20px;
+        }
+
+        /* Верхняя панель со счётчиком (только в режиме игры) */
+        .top-panel {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(20px);
+            border-radius: 60px;
+            padding: 12px 28px;
+            display: none;
+            align-items: center;
+            gap: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            z-index: 200;
+        }
+
+        .score-icon { font-size: 28px; }
+        .score-label { font-size: 14px; font-weight: 600; color: rgba(255, 255, 255, 0.8); text-transform: uppercase; }
+        .score-value { font-size: 36px; font-weight: 800; background: linear-gradient(135deg, #FFD700, #FFA500); -webkit-background-clip: text; background-clip: text; color: transparent; font-family: monospace; min-width: 80px; text-align: center; }
+        .score-unit { font-size: 14px; color: rgba(255, 255, 255, 0.6); }
+
+        /* Панель редактора - вертикальная справа */
+        .editor-panel {
+            position: fixed;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(20px);
+            border-radius: 40px;
+            padding: 16px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 200;
+            border: 1px solid rgba(255, 215, 0, 0.4);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Навигация по секторам */
+        .sector-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px 8px;
+            border-radius: 30px;
+        }
+
+        .sector-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 30px;
+            width: 44px;
+            height: 44px;
+            font-size: 16px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .sector-btn:hover {
+            background: rgba(255, 215, 0, 0.7);
+            transform: scale(1.05);
+        }
+
+        .sector-btn.active {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: #1A1A2E;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        .editor-btn {
+            background: linear-gradient(135deg, #FF6B9D, #FFB347);
+            border: none;
+            border-radius: 40px;
+            padding: 10px 16px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #1A1A2E;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 100%;
+            white-space: nowrap;
+        }
+
+        .editor-btn.save-local { background: linear-gradient(135deg, #00D2FF, #6C5CE7); color: white; }
+        .editor-btn.save-master { background: linear-gradient(135deg, #FFD700, #FF8C00); color: #1A1A2E; }
+        .editor-btn.export { background: linear-gradient(135deg, #4ECDC4, #44B3AA); color: white; }
+        .editor-btn.import { background: linear-gradient(135deg, #95A5A6, #7F8C8D); color: white; }
+        .editor-btn.play { background: linear-gradient(135deg, #FFD700, #FFA500); }
+        .editor-btn.editor { background: linear-gradient(135deg, #6C5CE7, #FF6B9D); color: white; }
+        .editor-btn:hover { transform: translateY(-2px); filter: brightness(1.05); }
+
+        .mode-indicator {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 30px;
+            padding: 8px 12px;
+            font-size: 11px;
+            font-weight: bold;
+            color: #FFD700;
+            text-align: center;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+
+        /* ========== НИЖНЯЯ ПАНЕЛЬ УПРАВЛЕНИЯ ========== */
+/* Контейнер для нижней панели (привязан к игровому полю) */
+.bottom-panel-wrapper {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 0;
+    pointer-events: none;
+    z-index: 200;
+    display: none;
+}
+
+/* Нижняя панель управления */
+.bottom-panel {
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(255, 255, 255, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    height: 65px;
+    pointer-events: auto;
+    border-radius: 0 0 20px 20px;
+    box-sizing: border-box;
+}
+
+.bottom-panel-left {
+    width: 120px;
+}
+
+.bottom-panel-center {
+    display: flex;
+    justify-content: center;
+}
+
+.bottom-panel-right {
+    display: flex;
+    gap: 20px;
+    width: 120px;
+    justify-content: flex-end;
+}
+
+.control-btn {
+    background: rgba(255, 255, 255, 0.15);
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    font-size: 24px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(4px);
+}
+
+.control-btn:hover {
+    background: rgba(255, 215, 0, 0.4);
+    transform: scale(1.05);
+    color: #FFD700;
+}
+
+.control-btn.active {
+    background: rgba(255, 215, 0, 0.7);
+    color: #1A1A2E;
+}
+
+@media (max-width: 700px) {
+    .bottom-panel { height: 55px; padding: 0 16px; }
+    .control-btn { width: 44px; height: 44px; font-size: 20px; }
+    .bottom-panel-left { width: 100px; }
+    .bottom-panel-right { width: 100px; gap: 15px; }
+}
+
+        /* Попап паузы */
+        .pause-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .pause-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .pause-popup {
+            background: linear-gradient(135deg, #2D1B4E, #1A1A2E);
+            border-radius: 40px;
+            padding: 40px 50px;
+            text-align: center;
+            border: 2px solid rgba(255, 215, 0, 0.5);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+
+        .pause-overlay.active .pause-popup {
+            transform: scale(1);
+        }
+
+        .pause-emoji {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        .pause-title {
+            font-size: 32px;
+            font-weight: 800;
+            color: #FFD700;
+            margin-bottom: 20px;
+        }
+
+        .pause-resume-btn {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            border: none;
+            border-radius: 40px;
+            padding: 12px 32px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #1A1A2E;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .pause-resume-btn:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.05);
+        }
+
+        @media (max-width: 700px) {
+            .bottom-panel { height: 60px; padding: 0 15px; gap: 15px; }
+            .control-btn { width: 45px; height: 45px; font-size: 20px; }
+            .pause-popup { padding: 30px 40px; }
+            .pause-title { font-size: 26px; }
+        }
+		
+		/* Стартовый попап */
+.start-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(10px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.start-overlay.hide {
+    opacity: 0;
+    visibility: hidden;
+}
+
+.start-popup {
+    background: linear-gradient(135deg, #2D1B4E 0%, #1A1A2E 100%);
+    border-radius: 40px;
+    padding: 48px 40px;
+    text-align: center;
+    max-width: 380px;
+    width: 85%;
+    border: 2px solid rgba(255, 215, 0, 0.5);
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4), 0 0 30px rgba(255, 215, 0, 0.2);
+    transform: scale(1);
+    animation: popFadeIn 0.4s ease;
+}
+
+.start-emoji {
+    font-size: 72px;
+    margin-bottom: 16px;
+    animation: bounce 0.5s ease;
+}
+
+.start-title {
+    font-size: 32px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    margin-bottom: 16px;
+}
+
+.start-subtitle {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 32px;
+}
+
+.start-buttons {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+}
+
+.start-btn {
+    background: linear-gradient(135deg, #FF6B9D, #FFB347);
+    border: none;
+    border-radius: 50px;
+    padding: 14px 32px;
+    font-size: 18px;
+    font-weight: bold;
+    color: #1A1A2E;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 140px;
+}
+
+.start-btn.play {
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+}
+
+.start-btn.editor {
+    background: linear-gradient(135deg, #6C5CE7, #00D2FF);
+    color: white;
+}
+
+.start-btn:hover {
+    transform: translateY(-3px);
+    filter: brightness(1.05);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+@media (max-width: 500px) {
+    .start-popup { padding: 32px 24px; }
+    .start-emoji { font-size: 56px; }
+    .start-title { font-size: 26px; }
+    .start-btn { padding: 10px 24px; font-size: 16px; min-width: 120px; }
+    .start-buttons { gap: 15px; }
+}
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@7.4.2/dist/pixi.min.js"></script>
+</head>
+<body>
+<div class="game-container" id="gameContainer"></div>
+
+<!-- Верхняя панель со счётчиком -->
+<div class="top-panel" id="topPanel">
+    <span class="score-icon">⭐</span>
+    <span class="score-label">СЧЁТ</span>
+    <span class="score-value" id="scoreValue">0</span>
+    <span class="score-unit">очков</span>
+</div>
+
+<!-- Нижняя панель управления (только в режиме игры) -->
+<div class="bottom-panel-wrapper" id="bottomPanelWrapper" style="display: none;">
+    <div class="bottom-panel" id="bottomPanel">
+        <div class="bottom-panel-left"></div>
+        <div class="bottom-panel-center">
+            <button class="control-btn" id="pauseBtn" title="Пауза">⏸️</button>
+        </div>
+        <div class="bottom-panel-right">
+            <button class="control-btn" id="musicBtn" title="Музыка">🎵</button>
+            <button class="control-btn" id="soundBtn" title="Звуки">🔊</button>
+        </div>
+    </div>
+</div>
+
+<!-- Попап паузы -->
+<div class="pause-overlay" id="pauseOverlay">
+    <div class="pause-popup">
+        <div class="pause-emoji">⏸️</div>
+        <div class="pause-title">ПАУЗА</div>
+        <button class="pause-resume-btn" id="resumeBtn">ПРОДОЛЖИТЬ</button>
+    </div>
+</div>
+
+<!-- Стартовый попап -->
+<div class="start-overlay" id="startOverlay">
+    <div class="start-popup">
+        <div class="start-emoji">🎮</div>
+        <div class="start-title">Orbital Swap</div>
+        <div class="start-subtitle">Кликай/тапай по экрану,<br>чтобы менять круги местами</div>
+        <div class="start-buttons">
+            <button class="start-btn play" id="startPlayBtn">▶ ИГРАТЬ</button>
+            <button class="start-btn editor" id="startEditorBtn">✏️ РЕДАКТОР</button>
+        </div>
+    </div>
+</div>
+
+<!-- Панель редактора - вертикальная справа -->
+<div class="editor-panel" id="editorPanel">
+    <div class="mode-indicator" id="modeIndicator">🎨 РЕЖИМ:<br>РЕДАКТОР</div>
+    <div class="sector-nav" id="sectorNav">
+        <button class="sector-btn" data-sector="0">0</button>
+        <button class="sector-btn" data-sector="1">1</button>
+        <button class="sector-btn" data-sector="2">2</button>
+        <button class="sector-btn" data-sector="3">3</button>
+        <button class="sector-btn" data-sector="4">4</button>
+        <button class="sector-btn" data-sector="5">5</button>
+        <button class="sector-btn" data-sector="6">6</button>
+        <button class="sector-btn" data-sector="7">7</button>
+        <button class="sector-btn" data-sector="8">8</button>
+        <button class="sector-btn" data-sector="9">9</button>
+    </div>
+    <button class="editor-btn save-local" id="saveLocalBtn">💾 СОХРАНИТЬ (local)</button>
+    <button class="editor-btn save-master" id="saveMasterBtn">⭐ СОХРАНИТЬ MASTER</button>
+    <button class="editor-btn export" id="exportBtn">📤 ЭКСПОРТ XML</button>
+    <button class="editor-btn import" id="importBtn">📥 ИМПОРТ XML</button>
+    <button class="editor-btn play" id="playBtn">🎮 ИГРАТЬ</button>
+    <button class="editor-btn editor" id="editorBtn">✏️ РЕДАКТОР</button>
+</div>
+
+<script src="https://vk.com/js/api/xd_connection.js?2"></script>
+<script src="https://vk.com/js/api/bridge/bridge.js"></script>
+<script src="theme.js"></script>
+<script src="audio.js"></script>
+<script src="particles.js"></script>
+<script src="ui.js"></script>
+<script src="levelManager.js"></script>
+<script src="vkIntegration.js"></script>  <!-- НОВЫЙ файл -->
+<script src="reduktor.js"></script>
+<script src="main.js"></script>
+
+<!-- VK Bridge -->
+<script src="https://vk.com/js/api/xd_connection.js?2"></script>
+<script src="https://vk.com/js/api/bridge/bridge.js"></script>
+</body>
+</html>
