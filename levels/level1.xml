@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<level id="1" name="Первый уровень" author="Player">
+    <description>Начальный уровень для тренировки</description>
+    <blocks>
+        <!-- Блоки с отрицательными Y появляются сверху в игре -->
+        <block x="0" y="-192" color="0xFF6B9D"/>
+        <block x="96" y="-192" color="0x00D2FF"/>
+        <block x="192" y="-192" color="0xFFD700"/>
+        
+        <block x="48" y="-96" color="0x6C5CE7"/>
+        <block x="144" y="-96" color="0xFFB347"/>
+        
+        <block x="0" y="0" color="0x4ECDC4"/>
+        <block x="96" y="0" color="0xFF6B9D"/>
+        <block x="192" y="0" color="0x00D2FF"/>
+        
+        <block x="48" y="96" color="0xFFD700"/>
+        <block x="144" y="96" color="0x6C5CE7"/>
+        
+        <block x="0" y="192" color="0xFFB347"/>
+        <block x="96" y="192" color="0x4ECDC4"/>
+        <block x="192" y="192" color="0xFF6B9D"/>
+    </blocks>
+</level>
