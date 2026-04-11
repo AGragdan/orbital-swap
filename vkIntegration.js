@@ -15,7 +15,6 @@ const VKIntegration = (function() {
         return isVKPlatform;
     }
     
-    // Инициализация VK Bridge
     async function init() {
         if (initialized) return;
         
@@ -26,29 +25,29 @@ const VKIntegration = (function() {
         
         console.log('🎮 Обнаружена платформа VK Mini Apps');
         
+        // Проверяем, загрузился ли VK Bridge
+        if (typeof vkBridge === 'undefined') {
+            console.warn('⚠️ VK Bridge не загружен. Пропускаем инициализацию VK, но игра продолжит работу.');
+            return;
+        }
+        
         try {
-            // Инициализация приложения
             await vkBridge.send('VKWebAppInit');
             console.log('✅ VK Bridge инициализирован');
             
-            // Получение информации о пользователе
             userInfo = await vkBridge.send('VKWebAppGetUserInfo');
             console.log('👤 Пользователь VK:', userInfo.first_name, userInfo.last_name);
             
-            // Настройка внешнего вида
             await vkBridge.send('VKWebAppSetViewSettings', {
                 status_bar_style: 'dark',
                 action_bar_color: '#1a1a2e'
             });
             
-            // Скрываем кнопку "Поделиться" по умолчанию (если нужно)
             await vkBridge.send('VKWebAppSetShareSettings', {
                 share_url: window.location.href
             });
             
             initialized = true;
-            
-            // Можно показать приветствие с именем пользователя
             showGreeting();
             
         } catch (error) {
@@ -143,6 +142,7 @@ const VKIntegration = (function() {
     // Загрузить рекорд из VK
     async function loadRecord() {
         if (!isVKPlatform) return 0;
+        if (typeof vkBridge === 'undefined') return 0;
         
         try {
             const result = await vkBridge.send('VKWebAppStorageGet', {
