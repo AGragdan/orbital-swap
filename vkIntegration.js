@@ -1,6 +1,6 @@
 // ========================
 // МОДУЛЬ: VK Integration
-// Подключение к платформе VK Mini Apps
+// Подключение к платформе VK Mini Apps (современная версия)
 // ========================
 const VKIntegration = (function() {
     let isVKPlatform = false;
@@ -15,6 +15,7 @@ const VKIntegration = (function() {
         return isVKPlatform;
     }
     
+    // Инициализация VK Bridge
     async function init() {
         if (initialized) return;
         
@@ -25,56 +26,46 @@ const VKIntegration = (function() {
         
         console.log('🎮 Обнаружена платформа VK Mini Apps');
         
-        // Проверяем, загрузился ли VK Bridge
-        if (typeof vkBridge === 'undefined') {
+        // Проверяем, загружен ли VK Bridge (современная версия)
+        if (typeof VKBridge === 'undefined') {
             console.warn('⚠️ VK Bridge не загружен. Пропускаем инициализацию VK, но игра продолжит работу.');
             return;
         }
         
         try {
-            await vkBridge.send('VKWebAppInit');
+            // Инициализация приложения
+            await VKBridge.send('VKWebAppInit');
             console.log('✅ VK Bridge инициализирован');
             
-            userInfo = await vkBridge.send('VKWebAppGetUserInfo');
+            // Получение информации о пользователе
+            userInfo = await VKBridge.send('VKWebAppGetUserInfo');
             console.log('👤 Пользователь VK:', userInfo.first_name, userInfo.last_name);
             
-            await vkBridge.send('VKWebAppSetViewSettings', {
+            // Настройка внешнего вида (опционально)
+            await VKBridge.send('VKWebAppSetViewSettings', {
                 status_bar_style: 'dark',
                 action_bar_color: '#1a1a2e'
             });
             
-            await vkBridge.send('VKWebAppSetShareSettings', {
+            // Настройка шаринга (опционально)
+            await VKBridge.send('VKWebAppSetShareSettings', {
                 share_url: window.location.href
             });
             
             initialized = true;
-            showGreeting();
             
         } catch (error) {
             console.error('Ошибка инициализации VK Bridge:', error);
         }
     }
     
-    // Показать приветствие (опционально)
-    function showGreeting() {
-        if (!userInfo) return;
-        
-        // Небольшое приветствие в консоли или можно добавить временный тост
-        console.log(`👋 Привет, ${userInfo.first_name}! Добро пожаловать в Orbital Swap`);
-        
-        // Можно добавить событие для UI
-        const greetingEvent = new CustomEvent('vkUserReady', { 
-            detail: { firstName: userInfo.first_name, lastName: userInfo.last_name }
-        });
-        window.dispatchEvent(greetingEvent);
-    }
-    
     // Поделиться результатом
     async function shareResult(score) {
-        if (!isVKPlatform) return;
+        if (!checkVKPlatform()) return;
+        if (typeof VKBridge === 'undefined') return;
         
         try {
-            await vkBridge.send('VKWebAppShare', {
+            await VKBridge.send('VKWebAppShare', {
                 link: window.location.href,
                 text: `Я набрал ${score} очков в игре Orbital Swap! Попробуй побить мой рекорд! 🎮`
             });
@@ -85,10 +76,11 @@ const VKIntegration = (function() {
     
     // Показать рекламу (за вознаграждение)
     async function showRewardedAd() {
-        if (!isVKPlatform) return false;
+        if (!checkVKPlatform()) return false;
+        if (typeof VKBridge === 'undefined') return false;
         
         try {
-            const result = await vkBridge.send('VKWebAppShowNativeAds', { 
+            const result = await VKBridge.send('VKWebAppShowNativeAds', { 
                 ad_format: 'reward' 
             });
             return result.result === true;
@@ -98,38 +90,13 @@ const VKIntegration = (function() {
         }
     }
     
-    // Показать баннерную рекламу
-    function showBannerAd() {
-        if (!isVKPlatform) return;
-        
-        // Создаём контейнер для баннера
-        let bannerContainer = document.getElementById('vkBannerContainer');
-        if (!bannerContainer) {
-            bannerContainer = document.createElement('div');
-            bannerContainer.id = 'vkBannerContainer';
-            bannerContainer.style.cssText = `
-                position: fixed;
-                bottom: 0;
-                left: 0;
-                right: 0;
-                z-index: 300;
-                display: flex;
-                justify-content: center;
-            `;
-            document.body.appendChild(bannerContainer);
-        }
-        
-        // Показываем нативный баннер (если поддерживается)
-        vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'banner' })
-            .catch(e => console.log('Баннерная реклама не поддерживается'));
-    }
-    
-    // Сохранить рекорд в VK (опционально)
+    // Сохранить рекорд в VK Storage
     async function saveRecord(score) {
-        if (!isVKPlatform) return;
+        if (!checkVKPlatform()) return;
+        if (typeof VKBridge === 'undefined') return;
         
         try {
-            await vkBridge.send('VKWebAppStorageSet', {
+            await VKBridge.send('VKWebAppStorageSet', {
                 key: 'best_score',
                 value: score.toString()
             });
@@ -139,13 +106,13 @@ const VKIntegration = (function() {
         }
     }
     
-    // Загрузить рекорд из VK
+    // Загрузить рекорд из VK Storage
     async function loadRecord() {
-        if (!isVKPlatform) return 0;
-        if (typeof vkBridge === 'undefined') return 0;
+        if (!checkVKPlatform()) return 0;
+        if (typeof VKBridge === 'undefined') return 0;
         
         try {
-            const result = await vkBridge.send('VKWebAppStorageGet', {
+            const result = await VKBridge.send('VKWebAppStorageGet', {
                 keys: ['best_score']
             });
             const record = parseInt(result.keys[0]?.value || '0');
@@ -159,8 +126,9 @@ const VKIntegration = (function() {
     
     // Закрыть приложение (выйти)
     function closeApp() {
-        if (!isVKPlatform) return;
-        vkBridge.send('VKWebAppClose');
+        if (!checkVKPlatform()) return;
+        if (typeof VKBridge === 'undefined') return;
+        VKBridge.send('VKWebAppClose');
     }
     
     return {
@@ -169,7 +137,6 @@ const VKIntegration = (function() {
         getUserInfo: () => userInfo,
         shareResult,
         showRewardedAd,
-        showBannerAd,
         saveRecord,
         loadRecord,
         closeApp
