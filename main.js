@@ -33,20 +33,31 @@ const WindowManager = (function() {
         return app;
     }
     
-    function resize() {
-        const ww = window.innerWidth, wh = window.innerHeight;
-        let tw = ww, th = tw / TARGET_ASPECT;
-        if (th > wh) { 
-            th = wh; 
-            tw = th * TARGET_ASPECT; 
-        }
-        app.renderer.resize(tw, th);
-        canvas.style.width = `${tw}px`;
-        canvas.style.height = `${th}px`;
-        canvas.style.left = '50%';
-        canvas.style.top = '50%';
-        canvas.style.transform = 'translate(-50%, -50%)';
+function resize() {
+    const ww = window.innerWidth, wh = window.innerHeight;
+    let tw = ww, th = tw / TARGET_ASPECT;
+    if (th > wh) { 
+        th = wh; 
+        tw = th * TARGET_ASPECT; 
     }
+    
+    // Принудительно ограничиваем максимальный размер
+    const maxWidth = 450;  // Максимальная ширина для мобильных
+    if (tw > maxWidth && wh < 800) {
+        tw = maxWidth;
+        th = tw / TARGET_ASPECT;
+    }
+    
+    app.renderer.resize(tw, th);
+    canvas.style.width = `${tw}px`;
+    canvas.style.height = `${th}px`;
+    canvas.style.left = '50%';
+    canvas.style.top = '50%';
+    canvas.style.transform = 'translate(-50%, -50%)';
+    
+    // Обновляем размеры для блоков
+    updateBlockSize();
+}
     
     function onResize(cb) { 
         resizeCallbacks.push(cb); 
