@@ -3,6 +3,13 @@ const WindowManager = (function() {
     let app = null, canvas = null;
     const resizeCallbacks = [];
     
+    // Инициализация VK (минимально необходимое)
+if (typeof vkBridge !== 'undefined') {
+    vkBridge.send('VKWebAppInit').catch(e => console.log('VK init error:', e));
+    console.log('✅ VK Bridge вызван');
+} else {
+    console.log('⚠️ VK Bridge не загружен, игра работает без VK');
+}
     function init(containerId) {
         const container = document.getElementById(containerId);
         app = new PIXI.Application({ 
