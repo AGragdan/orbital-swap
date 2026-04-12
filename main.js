@@ -33,20 +33,48 @@ const WindowManager = (function() {
         return app;
     }
     
-    function resize() {
-        const ww = window.innerWidth, wh = window.innerHeight;
-        let tw = ww, th = tw / TARGET_ASPECT;
-        if (th > wh) { 
-            th = wh; 
-            tw = th * TARGET_ASPECT; 
-        }
-        app.renderer.resize(tw, th);
-        canvas.style.width = `${tw}px`;
-        canvas.style.height = `${th}px`;
-        canvas.style.left = '50%';
-        canvas.style.top = '50%';
-        canvas.style.transform = 'translate(-50%, -50%)';
+function resize() {
+    const ww = window.innerWidth;
+    const wh = window.innerHeight;
+    const targetAspect = 9 / 16; // 0.5625
+    
+    let gameWidth, gameHeight;
+    
+    // Сравниваем пропорции экрана с целевыми
+    const screenAspect = ww / wh;
+    
+    if (screenAspect > targetAspect) {
+        // Экран шире — вписываем по высоте
+        gameHeight = wh;
+        gameWidth = gameHeight * targetAspect;
+    } else {
+        // Экран уже — вписываем по ширине
+        gameWidth = ww;
+        gameHeight = gameWidth / targetAspect;
     }
+    
+    // Округляем до целых
+    gameWidth = Math.floor(gameWidth);
+    gameHeight = Math.floor(gameHeight);
+    
+    app.renderer.resize(gameWidth, gameHeight);
+    
+    canvas.style.width = `${gameWidth}px`;
+    canvas.style.height = `${gameHeight}px`;
+    canvas.style.left = '50%';
+    canvas.style.top = '50%';
+    canvas.style.transform = 'translate(-50%, -50%)';
+    
+    // Обновляем размер блоков
+    const blockSize = gameWidth / 15;
+    if (Reduktor && Reduktor.setBlockSize) {
+        Reduktor.setBlockSize(blockSize);
+    } else if (Reduktor && Reduktor.updateBlockSize) {
+        Reduktor.updateBlockSize();
+    }
+    
+    console.log(`📐 Размер игры: ${gameWidth}x${gameHeight}, блок: ${blockSize}px`);
+}
     
     function onResize(cb) { 
         resizeCallbacks.push(cb); 

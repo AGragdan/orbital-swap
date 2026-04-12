@@ -79,6 +79,20 @@ const Reduktor = (function() {
         if (currentWidth) blockSize = currentWidth / 15;
     }
     
+    function setBlockSize(newSize) {
+    if (newSize && newSize > 0) {
+        blockSize = newSize;
+        // Пересоздаём блоки с новым размером
+        const blockData = blocks.map(b => ({ x: b.worldX, y: b.worldY, color: b.color }));
+        if (blocksContainer) {
+            blocksContainer.removeChildren();
+            blocks = [];
+            blockData.forEach(d => addBlock(d.x, d.y, d.color));
+        }
+        console.log('🔧 Размер блока установлен:', blockSize);
+    }
+}
+
     function setSector(sector) {
         if (!isEditorMode) return;
         if (sector === currentSector) return;
@@ -476,6 +490,7 @@ function stopFalling() {
         resize,
         destroy,
         setOnBlocksUpdate,
+        setBlockSize: setBlockSize,
         addBlock
     };
 })();
