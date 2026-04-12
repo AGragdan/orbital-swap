@@ -36,14 +36,12 @@ const WindowManager = (function() {
 function resize() {
     const ww = window.innerWidth;
     const wh = window.innerHeight;
-    const targetAspect = 9 / 16; // 0.5625
+    const targetAspect = 9 / 16;
     
     let gameWidth, gameHeight;
     
-    // Сравниваем пропорции экрана с целевыми
-    const screenAspect = ww / wh;
-    
-    if (screenAspect > targetAspect) {
+    // Всегда делаем игру вертикальной (9:16)
+    if (ww / wh > targetAspect) {
         // Экран шире — вписываем по высоте
         gameHeight = wh;
         gameWidth = gameHeight * targetAspect;
@@ -53,7 +51,6 @@ function resize() {
         gameHeight = gameWidth / targetAspect;
     }
     
-    // Округляем до целых
     gameWidth = Math.floor(gameWidth);
     gameHeight = Math.floor(gameHeight);
     
@@ -64,13 +61,12 @@ function resize() {
     canvas.style.left = '50%';
     canvas.style.top = '50%';
     canvas.style.transform = 'translate(-50%, -50%)';
+    canvas.style.position = 'absolute';
     
     // Обновляем размер блоков
     const blockSize = gameWidth / 15;
-    if (Reduktor && Reduktor.setBlockSize) {
+    if (Reduktor && typeof Reduktor.setBlockSize === 'function') {
         Reduktor.setBlockSize(blockSize);
-    } else if (Reduktor && Reduktor.updateBlockSize) {
-        Reduktor.updateBlockSize();
     }
     
     console.log(`📐 Размер игры: ${gameWidth}x${gameHeight}, блок: ${blockSize}px`);
@@ -504,6 +500,13 @@ VKIntegration.loadRecord().then(vkRecord => {
         
         const w = WindowManager.getWidth(), h = WindowManager.getHeight();
         Reduktor.initEditor(stage, w, h);
+        
+                setTimeout(() => {
+            WindowManager.resize();
+        }, 50);
+        setTimeout(() => {
+            WindowManager.resize();
+        }, 200);
         
         LevelManager.loadFromMaster().then(masterBlocks => {
             if (masterBlocks.length > 0) {
