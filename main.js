@@ -521,6 +521,7 @@ UI.setRestartCallback(() => {
             BackgroundAndParticles.resize(nw, nh);
             GameObjects.resize(nw, nh);
             Reduktor.resize(nw, nh);
+            Reduktor.resizeBlocks(nw, nh); 
             updateBottomPanelSize();
         });
         

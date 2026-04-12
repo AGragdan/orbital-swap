@@ -468,6 +468,27 @@ function stopFalling() {
         clearBlocks();
         if (blocksContainer && stage) stage.removeChild(blocksContainer);
     }
+
+    function resizeBlocks(newWidth, newHeight) {
+    if (currentWidth === 0 || currentHeight === 0) return;
+    
+    const oldWidth = currentWidth;
+    const oldHeight = currentHeight;
+    
+    // Пересчитываем координаты всех блоков
+    blocks.forEach(block => {
+        block.worldX = (block.worldX / oldWidth) * newWidth;
+        block.worldY = (block.worldY / oldHeight) * newHeight;
+        block.sprite.x = block.worldX;
+        block.sprite.y = worldToScreen(block.worldY);
+    });
+    
+    currentWidth = newWidth;
+    currentHeight = newHeight;
+    updateBlockSize();
+    
+    console.log(`🔄 Блоки пересчитаны: ${oldWidth}x${oldHeight} → ${newWidth}x${newHeight}`);
+}
     
     return {
         initEditor,
