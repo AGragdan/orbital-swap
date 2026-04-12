@@ -75,10 +75,25 @@ const Reduktor = (function() {
         return { x: newX, y: newY };
     }
     
-    function updateBlockSize() {
-        if (currentWidth) blockSize = currentWidth / 15;
+function updateBlockSize() {
+    if (currentWidth) {
+        blockSize = currentWidth / 15;
+        console.log('📐 updateBlockSize:', blockSize, 'currentWidth:', currentWidth);
     }
-    
+}
+
+   // Добавьте функцию для принудительного обновления после ресайза
+function forceUpdateSize() {
+    if (blocksContainer && blockSize > 0) {
+        const blockData = blocks.map(b => ({ x: b.worldX, y: b.worldY, color: b.color }));
+        blocksContainer.removeChildren();
+        blocks = [];
+        blockData.forEach(d => addBlock(d.x, d.y, d.color));
+        updateBlocksContainerPosition();
+        console.log('🔄 Принудительное обновление размеров блоков');
+    }
+} 
+
     function setSector(sector) {
         if (!isEditorMode) return;
         if (sector === currentSector) return;
