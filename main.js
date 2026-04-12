@@ -33,40 +33,20 @@ const WindowManager = (function() {
         return app;
     }
     
-function resize() {
-    // Получаем реальные размеры окна без учёта консоли
-    const ww = window.innerWidth;
-    const wh = window.innerHeight;
-    
-    // Задержка для синхронизации после открытия/закрытия консоли
-    setTimeout(() => {
-        const tw = ww, th = ww / TARGET_ASPECT;
-        let targetWidth = tw;
-        let targetHeight = th;
-        
-        if (th > wh) {
-            targetHeight = wh;
-            targetWidth = wh * TARGET_ASPECT;
+    function resize() {
+        const ww = window.innerWidth, wh = window.innerHeight;
+        let tw = ww, th = tw / TARGET_ASPECT;
+        if (th > wh) { 
+            th = wh; 
+            tw = th * TARGET_ASPECT; 
         }
-        
-        app.renderer.resize(targetWidth, targetHeight);
-        
-        canvas.style.width = `${targetWidth}px`;
-        canvas.style.height = `${targetHeight}px`;
+        app.renderer.resize(tw, th);
+        canvas.style.width = `${tw}px`;
+        canvas.style.height = `${th}px`;
         canvas.style.left = '50%';
         canvas.style.top = '50%';
         canvas.style.transform = 'translate(-50%, -50%)';
-        
-        // Обновляем размеры блоков и кругов
-        if (Reduktor && Reduktor.updateBlockSize) {
-            Reduktor.updateBlockSize();
-        }
-        if (GameObjects && GameObjects.updateGeometry) {
-            GameObjects.updateGeometry();
-            GameObjects.updatePositions();
-        }
-    }, 50);
-}
+    }
     
     function onResize(cb) { 
         resizeCallbacks.push(cb); 
