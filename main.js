@@ -34,33 +34,20 @@ const WindowManager = (function() {
     }
     
 function resize() {
-    const ww = window.innerWidth;
-    const wh = window.innerHeight;
-    const targetAspect = 9 / 16;
+    // ФИКСИРОВАННЫЙ РАЗМЕР ДЛЯ ВСЕХ УСТРОЙСТВ
+    const FIXED_WIDTH = 360;
+    const FIXED_HEIGHT = 640;
     
-    let gameWidth, gameHeight;
+    app.renderer.resize(FIXED_WIDTH, FIXED_HEIGHT);
     
-    if (ww / wh > targetAspect) {
-        gameHeight = Math.min(wh, 900);
-        gameWidth = gameHeight * targetAspect;
-    } else {
-        gameWidth = Math.min(ww, 500);
-        gameHeight = gameWidth / targetAspect;
-    }
-    
-    gameWidth = Math.floor(gameWidth);
-    gameHeight = Math.floor(gameHeight);
-    
-    app.renderer.resize(gameWidth, gameHeight);
-    
-    canvas.style.width = `${gameWidth}px`;
-    canvas.style.height = `${gameHeight}px`;
+    canvas.style.width = `${FIXED_WIDTH}px`;
+    canvas.style.height = `${FIXED_HEIGHT}px`;
     canvas.style.left = '50%';
     canvas.style.top = '50%';
     canvas.style.transform = 'translate(-50%, -50%)';
     canvas.style.position = 'absolute';
     
-    const blockSize = gameWidth / 15;
+    const blockSize = FIXED_WIDTH / 15; // 24px
     
     if (Reduktor && typeof Reduktor.setBlockSize === 'function') {
         Reduktor.setBlockSize(blockSize);
@@ -69,7 +56,7 @@ function resize() {
         GameObjects.setCircleSize(blockSize);
     }
     
-    console.log(`📐 Размер игры: ${gameWidth}x${gameHeight}, блок: ${blockSize}px`);
+    console.log(`📐 Размер игры: ${FIXED_WIDTH}x${FIXED_HEIGHT}, блок: ${blockSize}px`);
 }
     
     function onResize(cb) { 
