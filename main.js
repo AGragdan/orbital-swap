@@ -34,29 +34,29 @@ const WindowManager = (function() {
     }
     
 function resize() {
-    const ww = window.innerWidth, wh = window.innerHeight;
-    let tw = ww, th = tw / TARGET_ASPECT;
-    if (th > wh) { 
-        th = wh; 
-        tw = th * TARGET_ASPECT; 
-    }
+    // ФИКСИРОВАННЫЙ РАЗМЕР ДЛЯ ВСЕХ УСТРОЙСТВ
+    const FIXED_WIDTH = 360;
+    const FIXED_HEIGHT = 640;
     
-    // Принудительно ограничиваем максимальный размер
-    const maxWidth = 450;  // Максимальная ширина для мобильных
-    if (tw > maxWidth && wh < 800) {
-        tw = maxWidth;
-        th = tw / TARGET_ASPECT;
-    }
+    app.renderer.resize(FIXED_WIDTH, FIXED_HEIGHT);
     
-    app.renderer.resize(tw, th);
-    canvas.style.width = `${tw}px`;
-    canvas.style.height = `${th}px`;
+    canvas.style.width = `${FIXED_WIDTH}px`;
+    canvas.style.height = `${FIXED_HEIGHT}px`;
     canvas.style.left = '50%';
     canvas.style.top = '50%';
     canvas.style.transform = 'translate(-50%, -50%)';
+    canvas.style.position = 'absolute';
     
-    // Обновляем размеры для блоков
-    updateBlockSize();
+    const blockSize = FIXED_WIDTH / 15; // 24px
+    
+    if (Reduktor && typeof Reduktor.setBlockSize === 'function') {
+        Reduktor.setBlockSize(blockSize);
+    }
+    if (GameObjects && typeof GameObjects.setCircleSize === 'function') {
+        GameObjects.setCircleSize(blockSize);
+    }
+    
+    console.log(`📐 Размер игры: ${FIXED_WIDTH}x${FIXED_HEIGHT}, блок: ${blockSize}px`);
 }
     
     function onResize(cb) { 
@@ -85,7 +85,8 @@ function resize() {
         getStage, 
         getWidth, 
         getHeight, 
-        getCanvas 
+        getCanvas,
+        resize  
     };
 })();
 
@@ -488,6 +489,13 @@ VKIntegration.loadRecord().then(vkRecord => {
         const w = WindowManager.getWidth(), h = WindowManager.getHeight();
         Reduktor.initEditor(stage, w, h);
         
+                setTimeout(() => {
+            WindowManager.resize();
+        }, 50);
+        setTimeout(() => {
+            WindowManager.resize();
+        }, 200);
+
         LevelManager.loadFromMaster().then(masterBlocks => {
             if (masterBlocks.length > 0) {
                 Reduktor.clearBlocks();

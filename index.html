@@ -504,6 +504,24 @@
         document.head.appendChild(script);
     }
 </script>
+<script>
+    // Принудительный ресайз после загрузки
+    window.addEventListener('load', () => {
+        setTimeout(() => {
+            window.dispatchEvent(new Event('resize'));
+        }, 100);
+    });
+    
+    // Отслеживаем изменение размеров консоли
+    if (window.ResizeObserver) {
+        const observer = new ResizeObserver(() => {
+            setTimeout(() => {
+                window.dispatchEvent(new Event('resize'));
+            }, 50);
+        });
+        observer.observe(document.body);
+    }
+</script>
 
 </body>
 </html>
