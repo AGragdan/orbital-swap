@@ -399,6 +399,7 @@
 }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/pixi.js@7.4.2/dist/pixi.min.js"></script>
+    <script src="https://unpkg.com/@vkontakte/vk-bridge@2.15.2/dist/browser.min.js"></script>
 </head>
 <body>
 <div class="game-container" id="gameContainer"></div>
@@ -470,8 +471,7 @@
     <button class="editor-btn editor" id="editorBtn">✏️ РЕДАКТОР</button>
 </div>
 
-<!-- VK Bridge -->
-<script src="https://unpkg.com/@vkontakte/vk-bridge@latest/dist/browser.min.js"></script>
+
 <script src="theme.js"></script>
 <script src="audio.js"></script>
 <script src="particles.js"></script>
@@ -480,7 +480,29 @@
 <script src="vkIntegration.js"></script>  <!-- НОВЫЙ файл -->
 <script src="reduktor.js"></script>
 <script src="main.js"></script>
-
+<script>
+    // Инициализация VK Bridge - ДО всех игровых скриптов
+    if (typeof vkBridge !== 'undefined') {
+        console.log('✅ VK Bridge найден, инициализация...');
+        vkBridge.send('VKWebAppInit')
+            .then(data => {
+                if (data.result) {
+                    console.log('✅ VK Bridge инициализирован успешно');
+                    // Сигнал, что приложение готово
+                    document.body.setAttribute('data-vk-ready', 'true');
+                }
+            })
+            .catch(error => {
+                console.error('❌ Ошибка инициализации VK Bridge:', error);
+            });
+    } else {
+        console.error('❌ VK Bridge не загружен! Проверьте подключение скрипта');
+        // Попробуем альтернативный URL
+        const script = document.createElement('script');
+        script.src = 'https://vk.com/js/api/bridge.js';
+        document.head.appendChild(script);
+    }
+</script>
 
 </body>
 </html>
