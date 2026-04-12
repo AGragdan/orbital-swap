@@ -40,14 +40,11 @@ function resize() {
     
     let gameWidth, gameHeight;
     
-    // Всегда делаем игру вертикальной (9:16)
     if (ww / wh > targetAspect) {
-        // Экран шире — вписываем по высоте
-        gameHeight = wh;
+        gameHeight = Math.min(wh, 900);
         gameWidth = gameHeight * targetAspect;
     } else {
-        // Экран уже — вписываем по ширине
-        gameWidth = ww;
+        gameWidth = Math.min(ww, 500);
         gameHeight = gameWidth / targetAspect;
     }
     
@@ -63,10 +60,13 @@ function resize() {
     canvas.style.transform = 'translate(-50%, -50%)';
     canvas.style.position = 'absolute';
     
-    // Обновляем размер блоков
     const blockSize = gameWidth / 15;
+    
     if (Reduktor && typeof Reduktor.setBlockSize === 'function') {
         Reduktor.setBlockSize(blockSize);
+    }
+    if (GameObjects && typeof GameObjects.setCircleSize === 'function') {
+        GameObjects.setCircleSize(blockSize);
     }
     
     console.log(`📐 Размер игры: ${gameWidth}x${gameHeight}, блок: ${blockSize}px`);
@@ -507,7 +507,7 @@ VKIntegration.loadRecord().then(vkRecord => {
         setTimeout(() => {
             WindowManager.resize();
         }, 200);
-        
+
         LevelManager.loadFromMaster().then(masterBlocks => {
             if (masterBlocks.length > 0) {
                 Reduktor.clearBlocks();
