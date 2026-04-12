@@ -458,19 +458,10 @@ const App = (function() {
         AudioManager.init();
         
 		    // Инициализация VK Bridge
-    VKIntegration.init();
+
     
     // Загрузка рекорда из VK (если игра в VK)
-    VKIntegration.loadRecord().then(vkRecord => {
-        if (vkRecord > 0) {
-            const currentRecord = UI.getRecord();
-            if (vkRecord > currentRecord) {
-                // Обновляем локальный рекорд
-                localStorage.setItem('orbital_record', vkRecord);
-                console.log(`Рекорд синхронизирован с VK: ${vkRecord}`);
-            }
-        }
-    });
+
         const pixi = WindowManager.init('gameContainer');
         const stage = WindowManager.getStage();
         
