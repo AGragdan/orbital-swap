@@ -85,7 +85,8 @@ function resize() {
         getStage, 
         getWidth, 
         getHeight, 
-        getCanvas 
+        getCanvas,
+        resize  
     };
 })();
 
