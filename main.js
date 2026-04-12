@@ -33,31 +33,20 @@ const WindowManager = (function() {
         return app;
     }
     
-function resize() {
-    // ФИКСИРОВАННЫЙ РАЗМЕР ДЛЯ ВСЕХ УСТРОЙСТВ
-    const FIXED_WIDTH = 360;
-    const FIXED_HEIGHT = 640;
-    
-    app.renderer.resize(FIXED_WIDTH, FIXED_HEIGHT);
-    
-    canvas.style.width = `${FIXED_WIDTH}px`;
-    canvas.style.height = `${FIXED_HEIGHT}px`;
-    canvas.style.left = '50%';
-    canvas.style.top = '50%';
-    canvas.style.transform = 'translate(-50%, -50%)';
-    canvas.style.position = 'absolute';
-    
-    const blockSize = FIXED_WIDTH / 15; // 24px
-    
-    if (Reduktor && typeof Reduktor.setBlockSize === 'function') {
-        Reduktor.setBlockSize(blockSize);
+    function resize() {
+        const ww = window.innerWidth, wh = window.innerHeight;
+        let tw = ww, th = tw / TARGET_ASPECT;
+        if (th > wh) { 
+            th = wh; 
+            tw = th * TARGET_ASPECT; 
+        }
+        app.renderer.resize(tw, th);
+        canvas.style.width = `${tw}px`;
+        canvas.style.height = `${th}px`;
+        canvas.style.left = '50%';
+        canvas.style.top = '50%';
+        canvas.style.transform = 'translate(-50%, -50%)';
     }
-    if (GameObjects && typeof GameObjects.setCircleSize === 'function') {
-        GameObjects.setCircleSize(blockSize);
-    }
-    
-    console.log(`📐 Размер игры: ${FIXED_WIDTH}x${FIXED_HEIGHT}, блок: ${blockSize}px`);
-}
     
     function onResize(cb) { 
         resizeCallbacks.push(cb); 
@@ -85,8 +74,7 @@ function resize() {
         getStage, 
         getWidth, 
         getHeight, 
-        getCanvas,
-        resize  
+        getCanvas 
     };
 })();
 
@@ -470,16 +458,19 @@ const App = (function() {
         AudioManager.init();
         
 		    // Инициализация VK Bridge
-VKIntegration.init();
-VKIntegration.loadRecord().then(vkRecord => {
-    if (vkRecord > 0) {
-        const currentRecord = UI.getRecord();
-        if (vkRecord > currentRecord) {
-            localStorage.setItem('orbital_record', vkRecord);
-            console.log(`Рекорд синхронизирован с VK: ${vkRecord}`);
+    VKIntegration.init();
+    
+    // Загрузка рекорда из VK (если игра в VK)
+    VKIntegration.loadRecord().then(vkRecord => {
+        if (vkRecord > 0) {
+            const currentRecord = UI.getRecord();
+            if (vkRecord > currentRecord) {
+                // Обновляем локальный рекорд
+                localStorage.setItem('orbital_record', vkRecord);
+                console.log(`Рекорд синхронизирован с VK: ${vkRecord}`);
+            }
         }
-    }
-});
+    });
         const pixi = WindowManager.init('gameContainer');
         const stage = WindowManager.getStage();
         
@@ -489,13 +480,6 @@ VKIntegration.loadRecord().then(vkRecord => {
         const w = WindowManager.getWidth(), h = WindowManager.getHeight();
         Reduktor.initEditor(stage, w, h);
         
-                setTimeout(() => {
-            WindowManager.resize();
-        }, 50);
-        setTimeout(() => {
-            WindowManager.resize();
-        }, 200);
-
         LevelManager.loadFromMaster().then(masterBlocks => {
             if (masterBlocks.length > 0) {
                 Reduktor.clearBlocks();
