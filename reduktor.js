@@ -489,6 +489,30 @@ function stopFalling() {
     
     console.log(`🔄 Блоки пересчитаны: ${oldWidth}x${oldHeight} → ${newWidth}x${newHeight}`);
 }
+
+function resizeBlocks(newWidth, newHeight) {
+    if (currentWidth === 0 || currentHeight === 0) return;
+    if (!blocks || blocks.length === 0) return;
+    
+    const oldWidth = currentWidth;
+    const oldHeight = currentHeight;
+    
+    console.log(`🔄 Пересчёт блоков: ${oldWidth}x${oldHeight} → ${newWidth}x${newHeight}`);
+    
+    // Пересчитываем координаты всех блоков
+    blocks.forEach(block => {
+        block.worldX = (block.worldX / oldWidth) * newWidth;
+        block.worldY = (block.worldY / oldHeight) * newHeight;
+        block.sprite.x = block.worldX;
+        block.sprite.y = worldToScreen(block.worldY);
+    });
+    
+    currentWidth = newWidth;
+    currentHeight = newHeight;
+    updateBlockSize();
+    
+    console.log(`✅ Блоки пересчитаны, новый размер блока: ${blockSize}px`);
+}
     
     return {
         initEditor,
@@ -509,6 +533,7 @@ function stopFalling() {
         resumeFalling,
         resetGameBlocks,
         resize,
+        resizeBlocks,  
         destroy,
         setOnBlocksUpdate,
         setBlockSize: setBlockSize,
