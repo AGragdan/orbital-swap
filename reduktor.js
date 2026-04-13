@@ -486,34 +486,6 @@ function resize(w, h) {
     console.log(`📏 Блоки пересчитаны: ${oldWidth}x${oldHeight} → ${w}x${h}`);
 }
     
-    const oldWidth = currentWidth;
-    const oldHeight = currentHeight;
-    
-    currentWidth = w;
-    currentHeight = h;
-    updateBlockSize();
-    
-    if (blocks.length === 0) return;
-    
-    // Масштабируем координаты блоков пропорционально изменению размера экрана
-    const scaleX = w / oldWidth;
-    const scaleY = h / oldHeight;
-    
-    blocks.forEach(block => {
-        block.worldX = block.worldX * scaleX;
-        block.worldY = block.worldY * scaleY;
-        block.sprite.x = block.worldX;
-        block.sprite.y = worldToScreen(block.worldY);
-    });
-    
-    // Обновляем позицию контейнера
-    if (blocksContainer) {
-        blocksContainer.y = scrollOffset;
-    }
-    
-    console.log(`📏 Блоки пересчитаны: ${oldWidth}x${oldHeight} → ${w}x${h}, масштаб X=${scaleX.toFixed(2)}, Y=${scaleY.toFixed(2)}`);
-}
-    
     function destroy() {
         stopFalling();
         clearBlocks();
