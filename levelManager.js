@@ -68,11 +68,6 @@ async function loadFromMaster() {
         
         const { width, height } = getGameSize();
         
-        // Ограничиваем максимальный размер
-        const maxSize = 1000;
-        const safeWidth = Math.min(width, maxSize);
-        const safeHeight = Math.min(height, maxSize);
-        
         const blocks = [];
         const blockElements = xmlDoc.querySelectorAll('block');
         
@@ -83,16 +78,19 @@ async function loadFromMaster() {
             const color = block.getAttribute('color') ? parseInt(block.getAttribute('color')) : null;
             
             if (!isNaN(x) && !isNaN(y)) {
-                if (x <= 1 && y <= 1) {
-                    blocks.push({ worldX: x * safeWidth, worldY: y * safeHeight, color: color });
-                } else {
-                    blocks.push({ worldX: x, worldY: y, color: color });
-                }
+                // Сохраняем как есть (абсолютные координаты)
+                blocks.push({ worldX: x, worldY: y, color: color });
             }
         }
         
-        console.log(`📂 Загружено ${blocks.length} блоков, размер экрана: ${safeWidth}x${safeHeight}`);
-        return blocks;
+        // Нормализуем блоки (преобразуем в относительные)
+        const normalized = normalizeBlocks(blocks, width, height);
+        
+        // Сохраняем нормализованные блоки в localStorage для быстрого доступа
+        localStorage.setItem('orbital_normalized_blocks', JSON.stringify(normalized));
+        
+        // Возвращаем денормализованные под текущий размер
+        return denormalizeBlocks(normalized, width, height);
         
     } catch (error) {
         console.error('Ошибка загрузки master уровня:', error);
@@ -226,7 +224,30 @@ async function loadFromMaster() {
         console.log(`💾 Уровень экспортирован как ${filename}.xml`);
         return true;
     }
+
+    // Нормализация координат (преобразование абсолютных в относительные)
+function normalizeBlocks(blocks, width, height) {
+    if (!blocks || blocks.length === 0) return [];
+    if (width === 0 || height === 0) return blocks;
     
+    return blocks.map(block => ({
+        relX: block.worldX / width,
+        relY: block.worldY / height,
+        color: block.color
+    }));
+}
+
+// Денормализация (преобразование относительных в абсолютные)
+function denormalizeBlocks(normalizedBlocks, width, height) {
+    if (!normalizedBlocks || normalizedBlocks.length === 0) return [];
+    if (width === 0 || height === 0) return [];
+    
+    return normalizedBlocks.map(block => ({
+        worldX: block.relX * width,
+        worldY: block.relY * height,
+        color: block.color
+    }));
+}
     // ========== ПЕРЕСЧЁТ БЛОКОВ ПРИ РЕСАЙЗЕ ==========
     
     function resizeBlocks(blocks, oldWidth, oldHeight, newWidth, newHeight) {

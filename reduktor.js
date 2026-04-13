@@ -41,20 +41,51 @@ const Reduktor = (function() {
         return worldY - getCurrentOffset();
     }
     
-    function createBlockSprite(x, y, color) {
-        const g = new PIXI.Graphics();
-        const blockColor = color || Theme.getRandomBlockColor();
-        g.beginFill(blockColor);
-        g.drawRoundedRect(0, 0, blockSize, blockSize, Theme.blocks.cornerRadius);
-        g.endFill();
-        g.lineStyle(Theme.blocks.borderWidth, Theme.blocks.borderColor, Theme.blocks.borderAlpha);
-        g.drawRoundedRect(0, 0, blockSize, blockSize, Theme.blocks.cornerRadius);
-        g.x = x;
-        g.y = y;
-        g.interactive = true;
-        g.buttonMode = true;
-        return g;
-    }
+function createBlockSprite(x, y, color) {
+    const g = new PIXI.Graphics();
+    const blockColor = color || Theme.getRandomBlockColor();
+    const cornerRadius = Theme.getBlockCornerRadius();
+    
+    g.beginFill(blockColor);
+    g.drawRoundedRect(0, 0, blockSize, blockSize, cornerRadius);
+    g.endFill();
+    g.lineStyle(Theme.blocks.borderWidth, Theme.blocks.borderColor, Theme.blocks.borderAlpha);
+    g.drawRoundedRect(0, 0, blockSize, blockSize, cornerRadius);
+    g.x = x;
+    g.y = y;
+    g.interactive = true;
+    g.buttonMode = true;
+    return g;
+}
+
+function resizeBlocksToNewSize(newWidth, newHeight) {
+    if (currentWidth === 0 || currentHeight === 0) return;
+    
+    // Загружаем нормализованные блоки
+    const saved = localStorage.getItem('orbital_normalized_blocks');
+    if (!saved) return;
+    
+    const normalizedBlocks = JSON.parse(saved);
+    
+    // Пересчитываем абсолютные координаты под новый размер
+    const newBlocks = normalizedBlocks.map(block => ({
+        worldX: block.relX * newWidth,
+        worldY: block.relY * newHeight,
+        color: block.color
+    }));
+    
+    // Очищаем и пересоздаём блоки
+    clearBlocks();
+    newBlocks.forEach(block => {
+        addBlock(block.worldX, block.worldY, block.color);
+    });
+    
+    currentWidth = newWidth;
+    currentHeight = newHeight;
+    updateBlockSize();
+    
+    console.log(`🔄 Блоки пересчитаны под размер ${newWidth}x${newHeight}`);
+}
     
     function snapToNeighbors(x, y, draggingBlock) {
         let newX = x, newY = y;
@@ -77,7 +108,7 @@ const Reduktor = (function() {
     }
     
     function updateBlockSize() {
-        if (currentWidth) blockSize = currentWidth / 15;
+         blockSize = Theme.getBlockSize();
     }
     
     function setBlockSize(newSize) {
@@ -542,6 +573,7 @@ function resize(w, h) {
         setOnBlocksUpdate,
         setBlockSize,
         fullResize,
-        addBlock
+        addBlock,
+        resizeBlocksToNewSize
     };
 })();

@@ -108,24 +108,23 @@ const GameObjects = (function() {
     let isGameActive = true, onGameOverCallback = null;
     let score = 0, scoreInterval = null, onScoreUpdateCallback = null;
     
-    function createCircle(baseColor, borderColor, radius) {
-        const g = new PIXI.Graphics();
-        g.beginFill(baseColor);
-        g.drawCircle(0, 0, radius);
-        g.endFill();
-        g.lineStyle(Theme.circles.borderWidth, borderColor, Theme.circles.borderAlpha);
-        g.drawCircle(0, 0, radius);
-        if (radius > 4) {
-            g.beginFill(0xFFFFFF, Theme.circles.highlightAlpha);
-            g.drawCircle(
-                -radius * Theme.circles.highlightOffsetX, 
-                -radius * Theme.circles.highlightOffsetY, 
-                radius * Theme.circles.highlightSize
-            );
-            g.endFill();
-        }
-        return g;
-    }
+function updateGeometry() {
+    circleRadius = Theme.getCircleRadius();
+    orbitRadius = Theme.getOrbitDistance();
+}
+
+function createCircle(baseColor, borderColor, radius) {
+    const g = new PIXI.Graphics();
+    const borderWidth = Theme.getCircleBorderWidth();
+    
+    g.beginFill(baseColor);
+    g.drawCircle(0, 0, radius);
+    g.endFill();
+    g.lineStyle(borderWidth, borderColor, Theme.circles.borderAlpha);
+    g.drawCircle(0, 0, radius);
+    // ... блик
+    return g;
+}
     
     function recreateCircles() {
         if (!stage || circleRadius <= 0) return;
@@ -152,11 +151,10 @@ const GameObjects = (function() {
         if (circle2) stage.addChild(circle2);
     }
     
-    function updateGeometry() { 
-        const bs = Reduktor.getBlockSize(); 
-        circleRadius = bs / 2; 
-        orbitRadius = bs * distanceMultiplier; 
-    }
+function updateGeometry() {
+    circleRadius = Theme.getCircleRadius();
+    orbitRadius = Theme.getOrbitDistance();
+}
     
     function updatePositions() {
         if (!circle1 || !circle2) return;
@@ -555,27 +553,16 @@ const App = (function() {
             }
         });
         
-WindowManager.onResize((gameWidth, gameHeight) => {
-    BackgroundAndParticles.resize(gameWidth, gameHeight);
-    GameObjects.resize(gameWidth, gameHeight);
-    
-    // Пересчитываем координаты блоков
-    const currentBlocks = Reduktor.getBlocks();
-    if (currentBlocks.length > 0) {
-        const oldWidth = WindowManager.getWidth();
-        const oldHeight = WindowManager.getHeight();
-        const newBlocks = LevelManager.updateBlocksForNewSize(
-            currentBlocks, oldWidth, oldHeight, gameWidth, gameHeight
-        );
+    WindowManager.onResize((gameWidth, gameHeight) => {
+        BackgroundAndParticles.resize(gameWidth, gameHeight);
+        GameObjects.resize(gameWidth, gameHeight);
         
-        Reduktor.clearBlocks();
-        newBlocks.forEach(block => {
-            Reduktor.addBlock(block.worldX, block.worldY, block.color);
-        });
-    }
-    
-    updateBottomPanelSize();
-});
+        if (Reduktor.resizeBlocksToNewSize) {
+            Reduktor.resizeBlocksToNewSize(gameWidth, gameHeight);
+        }
+        
+        updateBottomPanelSize();
+    });
         
         if (w && h) {
             BackgroundAndParticles.resize(w, h);
