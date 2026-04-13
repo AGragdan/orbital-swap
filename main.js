@@ -33,41 +33,36 @@ const WindowManager = (function() {
         return app;
     }
     
-function resize() {
-    if (!app) return;
-    
-    // Получаем текущие размеры окна
-    let ww = window.innerWidth;
-    let wh = window.innerHeight;
-    
-    // Вычисляем размеры игрового поля с сохранением пропорции 9:16
-    let gameWidth = ww;
-    let gameHeight = gameWidth / (9/16);
-    
-    if (gameHeight > wh) {
-        gameHeight = wh;
-        gameWidth = gameHeight * (9/16);
+    function resize() {
+        if (!app) return;
+        
+        let ww = window.innerWidth;
+        let wh = window.innerHeight;
+        
+        let gameWidth = ww;
+        let gameHeight = gameWidth / (9/16);
+        
+        if (gameHeight > wh) {
+            gameHeight = wh;
+            gameWidth = gameHeight * (9/16);
+        }
+        
+        gameWidth = Math.floor(gameWidth);
+        gameHeight = Math.floor(gameHeight);
+        
+        app.renderer.resize(gameWidth, gameHeight);
+        
+        canvas.style.width = `${gameWidth}px`;
+        canvas.style.height = `${gameHeight}px`;
+        canvas.style.left = '50%';
+        canvas.style.top = '50%';
+        canvas.style.transform = 'translate(-50%, -50%)';
+        canvas.style.position = 'absolute';
+        
+        resizeCallbacks.forEach(cb => cb(gameWidth, gameHeight));
+        
+        console.log(`📐 Resize: ${gameWidth}x${gameHeight}, window: ${ww}x${wh}`);
     }
-    
-    gameWidth = Math.floor(gameWidth);
-    gameHeight = Math.floor(gameHeight);
-    
-    // Изменяем размер canvas
-    app.renderer.resize(gameWidth, gameHeight);
-    
-    // Применяем стили
-    canvas.style.width = `${gameWidth}px`;
-    canvas.style.height = `${gameHeight}px`;
-    canvas.style.left = '50%';
-    canvas.style.top = '50%';
-    canvas.style.transform = 'translate(-50%, -50%)';
-    canvas.style.position = 'absolute';
-    
-    // Принудительно обновляем все колбэки
-    resizeCallbacks.forEach(cb => cb(gameWidth, gameHeight));
-    
-    console.log(`📐 Resize: ${gameWidth}x${gameHeight}, window: ${ww}x${wh}`);
-}
     
     function onResize(cb) { 
         resizeCallbacks.push(cb); 
@@ -220,17 +215,16 @@ const GameObjects = (function() {
         if (checkCollision()) triggerGameOver();
     }
     
-function triggerGameOver() {
-    if (!isGameActive) return;
-    AudioManager.playCollision();
-    isGameActive = false;
-    stopAnimation();
-    stopScoreCounter();
-    // Останавливаем падение, но НЕ удаляем блоки из редактора
-    Reduktor.stopFalling();
-    Reduktor.hideBlocks();
-    if (onGameOverCallback) onGameOverCallback(score);
-}
+    function triggerGameOver() {
+        if (!isGameActive) return;
+        AudioManager.playCollision();
+        isGameActive = false;
+        stopAnimation();
+        stopScoreCounter();
+        Reduktor.stopFalling();
+        Reduktor.hideBlocks();
+        if (onGameOverCallback) onGameOverCallback(score);
+    }
     
     function startScoreCounter() {
         stopScoreCounter();
@@ -478,20 +472,20 @@ const App = (function() {
         UI.init();
         AudioManager.init();
         
-		    // Инициализация VK Bridge
-    VKIntegration.init();
-    
-    // Загрузка рекорда из VK (если игра в VK)
-    VKIntegration.loadRecord().then(vkRecord => {
-        if (vkRecord > 0) {
-            const currentRecord = UI.getRecord();
-            if (vkRecord > currentRecord) {
-                // Обновляем локальный рекорд
-                localStorage.setItem('orbital_record', vkRecord);
-                console.log(`Рекорд синхронизирован с VK: ${vkRecord}`);
+        // Инициализация VK Bridge
+        VKIntegration.init();
+        
+        // Загрузка рекорда из VK (если игра в VK)
+        VKIntegration.loadRecord().then(vkRecord => {
+            if (vkRecord > 0) {
+                const currentRecord = UI.getRecord();
+                if (vkRecord > currentRecord) {
+                    localStorage.setItem('orbital_record', vkRecord);
+                    console.log(`Рекорд синхронизирован с VK: ${vkRecord}`);
+                }
             }
-        }
-    });
+        });
+        
         const pixi = WindowManager.init('gameContainer');
         const stage = WindowManager.getStage();
         
@@ -513,45 +507,56 @@ const App = (function() {
         
         GameObjects.setOnScoreUpdate(s => document.getElementById('scoreValue').textContent = s);
         GameObjects.setOnGameOver(s => UI.showGameOver(s));
-UI.setRestartCallback(() => { 
-    if (!isGameMode) {
-        startGame();
-    } else {
-        // Перезапуск игры после Game Over
-        LevelManager.loadFromMaster().then(masterBlocks => {
-            // Полностью очищаем всё
-            Reduktor.clearGameBlocks();  // очищаем игровые блоки
-            Reduktor.clearBlocks();       // очищаем блоки редактора
-            GameObjects.stopGameLogic();
-            
-            if (masterBlocks.length > 0) {
-                masterBlocks.forEach(block => {
-                    Reduktor.addBlock(block.worldX, block.worldY, block.color);
-                });
-                console.log(`🔄 Перезапуск: загружен master уровень (${masterBlocks.length} блоков)`);
-            }
-            
-            // Запускаем игру заново
-            GameObjects.restart();
-            Reduktor.startFalling();
-        });
-    }
-});
         
-WindowManager.onResize((nw, nh) => {
-    BackgroundAndParticles.resize(nw, nh);
-    GameObjects.resize(nw, nh);
-    Reduktor.resize(nw, nh);
-    // GameObjects.updatePositions();  // УДАЛИТЕ ЭТУ СТРОКУ
-    updateBottomPanelSize();
-});
+        UI.setRestartCallback(() => { 
+            if (!isGameMode) {
+                startGame();
+            } else {
+                LevelManager.loadFromMaster().then(masterBlocks => {
+                    Reduktor.clearGameBlocks();
+                    Reduktor.clearBlocks();
+                    GameObjects.stopGameLogic();
+                    
+                    if (masterBlocks.length > 0) {
+                        masterBlocks.forEach(block => {
+                            Reduktor.addBlock(block.worldX, block.worldY, block.color);
+                        });
+                        console.log(`🔄 Перезапуск: загружен master уровень (${masterBlocks.length} блоков)`);
+                    }
+                    
+                    GameObjects.restart();
+                    Reduktor.startFalling();
+                });
+            }
+        });
+        
+        WindowManager.onResize((nw, nh) => {
+            BackgroundAndParticles.resize(nw, nh);
+            GameObjects.resize(nw, nh);
+            Reduktor.resize(nw, nh);
+            updateBottomPanelSize();
+        });
+        
+        if (w && h) {
+            BackgroundAndParticles.resize(w, h);
+            GameObjects.resize(w, h);
+            Reduktor.resize(w, h);
+        }
+        
+        initEditorButtons();
+        initControlButtons();
+        initVisibilityHandlers();
+        initStartScreen();
+        
+        isInitialized = true;
+        console.log('✅ Приложение запущено!');
+    }
     
     function initStartScreen() {
         const startOverlay = document.getElementById('startOverlay');
         const startPlayBtn = document.getElementById('startPlayBtn');
         const startEditorBtn = document.getElementById('startEditorBtn');
         
-        // Скрываем все игровые панели, показываем стартовый экран
         document.getElementById('editorPanel').style.display = 'none';
         document.getElementById('topPanel').style.display = 'none';
         document.getElementById('bottomPanelWrapper').style.display = 'none';
@@ -857,7 +862,6 @@ WindowManager.onResize((nw, nh) => {
         if (editorBtn) {
             editorBtn.addEventListener('click', () => {
                 if (isGameMode) {
-                    // Возврат в редактор из игры
                     isGameMode = false;
                     document.getElementById('editorPanel').style.display = 'flex';
                     document.getElementById('topPanel').style.display = 'none';
@@ -873,6 +877,18 @@ WindowManager.onResize((nw, nh) => {
                     Reduktor.resetGameBlocks();
                 }
             });
+        }
+    }
+    
+    function updateBottomPanelSize() {
+        const gameWidth = WindowManager.getWidth();
+        const wrapper = document.getElementById('bottomPanelWrapper');
+        const panel = document.getElementById('bottomPanel');
+        if (wrapper && panel && gameWidth > 0) {
+            wrapper.style.width = `${gameWidth}px`;
+            panel.style.width = `${gameWidth}px`;
+            const radius = Math.min(20, gameWidth * 0.05);
+            panel.style.borderRadius = `0 0 ${radius}px ${radius}px`;
         }
     }
     
