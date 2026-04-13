@@ -228,13 +228,19 @@ const Reduktor = (function() {
         if (onBlocksUpdateCallback) onBlocksUpdateCallback(0);
     }
     
-    function clearGameBlocks() {
-        for (const b of gameBlocksSpawned) {
-            if (b.sprite && !b.sprite.destroyed) stage.removeChild(b.sprite);
-        }
-        gameBlocks = [];
-        gameBlocksSpawned = [];
+function clearGameBlocks() {
+    // Не удаляем блоки, если мы в редакторе
+    if (isEditorMode) {
+        console.log('⚠️ clearGameBlocks пропущен, так как мы в редакторе');
+        return;
     }
+    
+    for (const b of gameBlocksSpawned) {
+        if (b.sprite && !b.sprite.destroyed) stage.removeChild(b.sprite);
+    }
+    gameBlocks = [];
+    gameBlocksSpawned = [];
+}
     
     function saveBlocks() {
         const data = blocks.map(b => ({
@@ -466,7 +472,17 @@ function resize(w, h) {
     
     if (blocks.length === 0) return;
     
-
+    const scaleX = w / oldWidth;
+    const scaleY = h / oldHeight;
+    
+    blocks.forEach(block => {
+        block.worldX = block.worldX * scaleX;
+        block.worldY = block.worldY * scaleY;
+        block.sprite.x = block.worldX;
+        block.sprite.y = worldToScreen(block.worldY);
+    });
+    
+    console.log(`📏 Блоки пересчитаны: ${oldWidth}x${oldHeight} → ${w}x${h}`);
 }
     
     function destroy() {
