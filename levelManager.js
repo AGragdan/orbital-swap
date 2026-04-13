@@ -66,7 +66,15 @@ async function loadFromMaster() {
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
         
-        const { width, height } = getGameSize();
+        // Эталонный размер, для которого созданы координаты в XML
+        const REFERENCE_WIDTH = 540;
+        const REFERENCE_HEIGHT = 960;
+        
+        const currentWidth = WindowManager.getWidth();
+        const currentHeight = WindowManager.getHeight();
+        
+        const scaleX = currentWidth / REFERENCE_WIDTH;
+        const scaleY = currentHeight / REFERENCE_HEIGHT;
         
         const blocks = [];
         const blockElements = xmlDoc.querySelectorAll('block');
@@ -78,19 +86,19 @@ async function loadFromMaster() {
             const color = block.getAttribute('color') ? parseInt(block.getAttribute('color')) : null;
             
             if (!isNaN(x) && !isNaN(y)) {
-                // Сохраняем как есть (абсолютные координаты)
-                blocks.push({ worldX: x, worldY: y, color: color });
+                blocks.push({ 
+                    worldX: x * scaleX, 
+                    worldY: y * scaleY, 
+                    color: color 
+                });
             }
         }
         
-        // Нормализуем блоки (преобразуем в относительные)
-        const normalized = normalizeBlocks(blocks, width, height);
+        console.log(`📂 Загружен master уровень: ${blocks.length} блоков`);
+        console.log(`   Масштаб: X=${scaleX.toFixed(2)}, Y=${scaleY.toFixed(2)}`);
+        console.log(`   Размер экрана: ${currentWidth}x${currentHeight}`);
         
-        // Сохраняем нормализованные блоки в localStorage для быстрого доступа
-        localStorage.setItem('orbital_normalized_blocks', JSON.stringify(normalized));
-        
-        // Возвращаем денормализованные под текущий размер
-        return denormalizeBlocks(normalized, width, height);
+        return blocks;
         
     } catch (error) {
         console.error('Ошибка загрузки master уровня:', error);
