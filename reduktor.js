@@ -19,6 +19,7 @@ const Reduktor = (function() {
     let lastFallTimestamp = 0;
     let onBlocksUpdateCallback = null;
     let isEditorMode = true;
+    let scrollOffset = 0;
     
     const FALL_SPEED = 1;
     const DOUBLE_CLICK_DELAY = 300;
@@ -80,19 +81,18 @@ const Reduktor = (function() {
     }
     
     function setBlockSize(newSize) {
-    if (newSize && newSize > 0) {
-        blockSize = newSize;
-        // Пересоздаём блоки с новым размером
-        const blockData = blocks.map(b => ({ x: b.worldX, y: b.worldY, color: b.color }));
-        if (blocksContainer) {
-            blocksContainer.removeChildren();
-            blocks = [];
-            blockData.forEach(d => addBlock(d.x, d.y, d.color));
+        if (newSize && newSize > 0) {
+            blockSize = newSize;
+            const blockData = blocks.map(b => ({ x: b.worldX, y: b.worldY, color: b.color }));
+            if (blocksContainer) {
+                blocksContainer.removeChildren();
+                blocks = [];
+                blockData.forEach(d => addBlock(d.x, d.y, d.color));
+            }
+            console.log('🔧 Размер блока установлен:', blockSize);
         }
-        console.log('🔧 Размер блока установлен:', blockSize);
     }
-}
-
+    
     function setSector(sector) {
         if (!isEditorMode) return;
         if (sector === currentSector) return;
@@ -228,6 +228,14 @@ const Reduktor = (function() {
         if (onBlocksUpdateCallback) onBlocksUpdateCallback(0);
     }
     
+    function clearGameBlocks() {
+        for (const b of gameBlocksSpawned) {
+            if (b.sprite && !b.sprite.destroyed) stage.removeChild(b.sprite);
+        }
+        gameBlocks = [];
+        gameBlocksSpawned = [];
+    }
+    
     function saveBlocks() {
         const data = blocks.map(b => ({
             x: b.worldX,
@@ -342,26 +350,16 @@ const Reduktor = (function() {
         fallAnimationId = requestAnimationFrame(loop);
     }
     
-function stopFalling() {
-    // Останавливаем анимацию падения
-    isFallingEnabled = false;
-    isFallingPaused = false;
-    if (fallAnimationId) {
-        cancelAnimationFrame(fallAnimationId);
-        fallAnimationId = null;
+    function stopFalling() {
+        isFallingEnabled = false;
+        isFallingPaused = false;
+        if (fallAnimationId) {
+            cancelAnimationFrame(fallAnimationId);
+            fallAnimationId = null;
+        }
+        console.log('⏸️ Падение блоков остановлено (Game Over)');
     }
-    // НЕ удаляем gameBlocks и gameBlocksSpawned, просто останавливаем
-    console.log('⏸️ Падение блоков остановлено (Game Over)');
-}
     
-	function clearGameBlocks() {
-    for (const b of gameBlocksSpawned) {
-        if (b.sprite && !b.sprite.destroyed) stage.removeChild(b.sprite);
-    }
-    gameBlocks = [];
-    gameBlocksSpawned = [];
-}
-
     function pauseFalling() {
         if (!isFallingEnabled) return;
         isFallingEnabled = false;
@@ -379,11 +377,10 @@ function stopFalling() {
         console.log('▶️ Падение блоков возобновлено');
     }
     
-  function resetGameBlocks() {
-    // Полная очистка при возврате в редактор
-    clearGameBlocks();
-    stopFalling();
-}
+    function resetGameBlocks() {
+        clearGameBlocks();
+        stopFalling();
+    }
     
     function getBlocks() {
         return blocks;
@@ -479,10 +476,6 @@ function resize(w, h) {
         block.sprite.y = worldToScreen(block.worldY);
     });
     
-    if (blocksContainer) {
-        blocksContainer.y = scrollOffset;
-    }
-    
     console.log(`📏 Блоки пересчитаны: ${oldWidth}x${oldHeight} → ${w}x${h}`);
 }
     
@@ -491,9 +484,6 @@ function resize(w, h) {
         clearBlocks();
         if (blocksContainer && stage) stage.removeChild(blocksContainer);
     }
-
-
-
     
     return {
         initEditor,
@@ -504,7 +494,7 @@ function resize(w, h) {
         saveBlocks,
         loadBlocks,
         clearBlocks,
-		clearGameBlocks,
+        clearGameBlocks,
         hideBlocks,
         showBlocks,
         getBlockSize,
@@ -513,10 +503,10 @@ function resize(w, h) {
         pauseFalling,
         resumeFalling,
         resetGameBlocks,
-        resize,  
+        resize,
         destroy,
         setOnBlocksUpdate,
-        setBlockSize: setBlockSize,
+        setBlockSize,
         addBlock
     };
 })();
