@@ -239,6 +239,19 @@ async function loadFromMaster() {
         }));
     }
     
+    function updateBlocksForNewSize(blocks, oldWidth, oldHeight, newWidth, newHeight) {
+    if (!blocks || blocks.length === 0) return [];
+    if (oldWidth === 0 || oldHeight === 0) return blocks;
+    
+    const scaleX = newWidth / oldWidth;
+    const scaleY = newHeight / oldHeight;
+    
+    return blocks.map(block => ({
+        worldX: block.worldX * scaleX,
+        worldY: block.worldY * scaleY,
+        color: block.color
+    }));
+}
     // ========== ПУБЛИЧНОЕ API ==========
     
     return {
@@ -247,6 +260,7 @@ async function loadFromMaster() {
         importLevel,
         exportLevel,
         resizeBlocks,
+        updateBlocksForNewSize,
         getGameSize
     };
 })();

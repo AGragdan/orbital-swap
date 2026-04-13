@@ -555,12 +555,27 @@ const App = (function() {
             }
         });
         
-        WindowManager.onResize((nw, nh) => {
-            BackgroundAndParticles.resize(nw, nh);
-            GameObjects.resize(nw, nh);
-            Reduktor.resize(nw, nh);
-            updateBottomPanelSize();
+WindowManager.onResize((gameWidth, gameHeight) => {
+    BackgroundAndParticles.resize(gameWidth, gameHeight);
+    GameObjects.resize(gameWidth, gameHeight);
+    
+    // Пересчитываем координаты блоков
+    const currentBlocks = Reduktor.getBlocks();
+    if (currentBlocks.length > 0) {
+        const oldWidth = WindowManager.getWidth();
+        const oldHeight = WindowManager.getHeight();
+        const newBlocks = LevelManager.updateBlocksForNewSize(
+            currentBlocks, oldWidth, oldHeight, gameWidth, gameHeight
+        );
+        
+        Reduktor.clearBlocks();
+        newBlocks.forEach(block => {
+            Reduktor.addBlock(block.worldX, block.worldY, block.color);
         });
+    }
+    
+    updateBottomPanelSize();
+});
         
         if (w && h) {
             BackgroundAndParticles.resize(w, h);
@@ -573,15 +588,6 @@ const App = (function() {
         initVisibilityHandlers();
         initStartScreen();
      
-            // ========== ПРИНУДИТЕЛЬНЫЙ РЕСАЙЗ ПОСЛЕ ЗАГРУЗКИ ==========
-   // setTimeout(() => {
-   //     WindowManager.resize();
-   // }, 200);
-   // setTimeout(() => {
-   //     WindowManager.resize();
-   // }, 800);
-    // ========================================================
-
         isInitialized = true;
         console.log('✅ Приложение запущено!');
     }

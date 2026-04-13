@@ -111,7 +111,6 @@ const Reduktor = (function() {
     }
     
     function addBlock(worldX, worldY, color = null) {
-        console.log('➕ addBlock вызван, добавляется блок на', worldX, worldY);
         if (!blocksContainer) return;
         
         const screenY = worldToScreen(worldY);
