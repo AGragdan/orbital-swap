@@ -484,6 +484,37 @@ function resize(w, h) {
         clearBlocks();
         if (blocksContainer && stage) stage.removeChild(blocksContainer);
     }
+
+    function fullResize(gameWidth, gameHeight) {
+    if (currentWidth === 0 || currentHeight === 0) {
+        currentWidth = gameWidth;
+        currentHeight = gameHeight;
+        updateBlockSize();
+        return;
+    }
+    
+    const oldWidth = currentWidth;
+    const oldHeight = currentHeight;
+    
+    currentWidth = gameWidth;
+    currentHeight = gameHeight;
+    updateBlockSize();
+    
+    if (blocks.length === 0) return;
+    
+    // Масштабируем координаты всех блоков
+    const scaleX = gameWidth / oldWidth;
+    const scaleY = gameHeight / oldHeight;
+    
+    blocks.forEach(block => {
+        block.worldX = block.worldX * scaleX;
+        block.worldY = block.worldY * scaleY;
+        block.sprite.x = block.worldX;
+        block.sprite.y = worldToScreen(block.worldY);
+    });
+    
+    console.log(`🔄 Reduktor: блоки пересчитаны, масштаб X=${scaleX.toFixed(2)}, Y=${scaleY.toFixed(2)}`);
+}
     
     return {
         initEditor,
@@ -507,6 +538,7 @@ function resize(w, h) {
         destroy,
         setOnBlocksUpdate,
         setBlockSize,
+        fullResize,
         addBlock
     };
 })();

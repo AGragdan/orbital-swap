@@ -36,45 +36,33 @@ const WindowManager = (function() {
 function resize() {
     if (!app) return;
     
-    // Получаем размеры окна
     const windowWidth = window.innerWidth;
     const windowHeight = window.innerHeight;
-    
-    // Целевое соотношение 9:16 (ширина : высота)
     const targetRatio = 9 / 16;
     
     let gameWidth, gameHeight;
     
-    // Вычисляем размер игрового поля, который впишется в окно
     if (windowWidth / windowHeight > targetRatio) {
-        // Окно шире — ограничиваем по высоте
         gameHeight = windowHeight;
         gameWidth = gameHeight * targetRatio;
     } else {
-        // Окно уже — ограничиваем по ширине
         gameWidth = windowWidth;
         gameHeight = gameWidth / targetRatio;
     }
     
-    // Округляем до целых
     gameWidth = Math.floor(gameWidth);
     gameHeight = Math.floor(gameHeight);
     
-    // Меняем размер canvas
     app.renderer.resize(gameWidth, gameHeight);
     
-    // Центрируем canvas
     canvas.style.position = 'absolute';
     canvas.style.left = `${(windowWidth - gameWidth) / 2}px`;
     canvas.style.top = `${(windowHeight - gameHeight) / 2}px`;
     canvas.style.width = `${gameWidth}px`;
     canvas.style.height = `${gameHeight}px`;
-    canvas.style.transform = 'none'; // Убираем transform, используем явные координаты
+    canvas.style.transform = 'none';
     
-    // Вызываем все колбэки
     resizeCallbacks.forEach(cb => cb(gameWidth, gameHeight));
-    
-    console.log(`📐 Окно: ${windowWidth}x${windowHeight} → Игра: ${gameWidth}x${gameHeight}`);
 }
     
     function onResize(cb) { 
@@ -458,10 +446,33 @@ const GameObjects = (function() {
         circle1 = null;
         circle2 = null;
     }
+
+    function fullResize(gameWidth, gameHeight) {
+    currentWidth = gameWidth;
+    currentHeight = gameHeight;
+    
+    // Пересчитываем размеры кругов
+    updateGeometry();
+    
+    // Пересчитываем позиции кругов
+    pivotX = currentWidth / 2;
+    pivotY = currentHeight * Theme.gameStart.centerY;
+    
+    if (circle1 && circle2) {
+        circle1.x = pivotX;
+        circle1.y = pivotY;
+        circle2.x = pivotX + orbitRadius;
+        circle2.y = pivotY;
+        updatePositions();
+    }
+    
+    console.log(`🔄 GameObjects: размер ${currentWidth}x${currentHeight}, радиус ${circleRadius}`);
+}
     
     return { 
         init, 
-        resize, 
+        resize,
+        fullResize, 
         destroy, 
         restart, 
         resumeGameLogic,
@@ -675,17 +686,19 @@ const App = (function() {
         Reduktor.resetGameBlocks();
     }
     
-    function updateBottomPanelSize() {
-        const gameWidth = WindowManager.getWidth();
-        const wrapper = document.getElementById('bottomPanelWrapper');
-        const panel = document.getElementById('bottomPanel');
-        if (wrapper && panel && gameWidth > 0) {
-            wrapper.style.width = `${gameWidth}px`;
-            panel.style.width = `${gameWidth}px`;
-            const radius = Math.min(20, gameWidth * 0.05);
-            panel.style.borderRadius = `0 0 ${radius}px ${radius}px`;
-        }
+function updateBottomPanelSize() {
+    const gameWidth = WindowManager.getWidth();
+    const wrapper = document.getElementById('bottomPanelWrapper');
+    const panel = document.getElementById('bottomPanel');
+    
+    if (wrapper && panel && gameWidth > 0) {
+        wrapper.style.width = `${gameWidth}px`;
+        panel.style.width = `${gameWidth}px`;
+        wrapper.style.left = `${(window.innerWidth - gameWidth) / 2}px`;
+        const radius = Math.min(20, gameWidth * 0.05);
+        panel.style.borderRadius = `0 0 ${radius}px ${radius}px`;
     }
+}
     
     function initControlButtons() {
         const musicBtn = document.getElementById('musicBtn');
