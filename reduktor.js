@@ -452,16 +452,41 @@ function stopFalling() {
         if (blocksContainer) blocksContainer.visible = true;
     }
     
-    function resize(w, h) {
+function resize(w, h) {
+    if (currentWidth === 0 || currentHeight === 0) {
         currentWidth = w;
         currentHeight = h;
         updateBlockSize();
-        
-        const blockData = blocks.map(b => ({ x: b.worldX, y: b.worldY, color: b.color }));
-        blocksContainer.removeChildren();
-        blocks = [];
-        blockData.forEach(d => addBlock(d.x, d.y, d.color));
+        return;
     }
+    
+    const oldWidth = currentWidth;
+    const oldHeight = currentHeight;
+    
+    currentWidth = w;
+    currentHeight = h;
+    updateBlockSize();
+    
+    if (blocks.length === 0) return;
+    
+    // Масштабируем координаты блоков пропорционально изменению размера экрана
+    const scaleX = w / oldWidth;
+    const scaleY = h / oldHeight;
+    
+    blocks.forEach(block => {
+        block.worldX = block.worldX * scaleX;
+        block.worldY = block.worldY * scaleY;
+        block.sprite.x = block.worldX;
+        block.sprite.y = worldToScreen(block.worldY);
+    });
+    
+    // Обновляем позицию контейнера
+    if (blocksContainer) {
+        blocksContainer.y = scrollOffset;
+    }
+    
+    console.log(`📏 Блоки пересчитаны: ${oldWidth}x${oldHeight} → ${w}x${h}, масштаб X=${scaleX.toFixed(2)}, Y=${scaleY.toFixed(2)}`);
+}
     
     function destroy() {
         stopFalling();
@@ -469,50 +494,8 @@ function stopFalling() {
         if (blocksContainer && stage) stage.removeChild(blocksContainer);
     }
 
-    function resizeBlocks(newWidth, newHeight) {
-    if (currentWidth === 0 || currentHeight === 0) return;
-    
-    const oldWidth = currentWidth;
-    const oldHeight = currentHeight;
-    
-    // Пересчитываем координаты всех блоков
-    blocks.forEach(block => {
-        block.worldX = (block.worldX / oldWidth) * newWidth;
-        block.worldY = (block.worldY / oldHeight) * newHeight;
-        block.sprite.x = block.worldX;
-        block.sprite.y = worldToScreen(block.worldY);
-    });
-    
-    currentWidth = newWidth;
-    currentHeight = newHeight;
-    updateBlockSize();
-    
-    console.log(`🔄 Блоки пересчитаны: ${oldWidth}x${oldHeight} → ${newWidth}x${newHeight}`);
-}
 
-function resizeBlocks(newWidth, newHeight) {
-    if (currentWidth === 0 || currentHeight === 0) return;
-    if (!blocks || blocks.length === 0) return;
-    
-    const oldWidth = currentWidth;
-    const oldHeight = currentHeight;
-    
-    console.log(`🔄 Пересчёт блоков: ${oldWidth}x${oldHeight} → ${newWidth}x${newHeight}`);
-    
-    // Пересчитываем координаты всех блоков
-    blocks.forEach(block => {
-        block.worldX = (block.worldX / oldWidth) * newWidth;
-        block.worldY = (block.worldY / oldHeight) * newHeight;
-        block.sprite.x = block.worldX;
-        block.sprite.y = worldToScreen(block.worldY);
-    });
-    
-    currentWidth = newWidth;
-    currentHeight = newHeight;
-    updateBlockSize();
-    
-    console.log(`✅ Блоки пересчитаны, новый размер блока: ${blockSize}px`);
-}
+
     
     return {
         initEditor,

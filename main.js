@@ -33,20 +33,41 @@ const WindowManager = (function() {
         return app;
     }
     
-    function resize() {
-        const ww = window.innerWidth, wh = window.innerHeight;
-        let tw = ww, th = tw / TARGET_ASPECT;
-        if (th > wh) { 
-            th = wh; 
-            tw = th * TARGET_ASPECT; 
-        }
-        app.renderer.resize(tw, th);
-        canvas.style.width = `${tw}px`;
-        canvas.style.height = `${th}px`;
-        canvas.style.left = '50%';
-        canvas.style.top = '50%';
-        canvas.style.transform = 'translate(-50%, -50%)';
+function resize() {
+    if (!app) return;
+    
+    // Получаем текущие размеры окна
+    let ww = window.innerWidth;
+    let wh = window.innerHeight;
+    
+    // Вычисляем размеры игрового поля с сохранением пропорции 9:16
+    let gameWidth = ww;
+    let gameHeight = gameWidth / (9/16);
+    
+    if (gameHeight > wh) {
+        gameHeight = wh;
+        gameWidth = gameHeight * (9/16);
     }
+    
+    gameWidth = Math.floor(gameWidth);
+    gameHeight = Math.floor(gameHeight);
+    
+    // Изменяем размер canvas
+    app.renderer.resize(gameWidth, gameHeight);
+    
+    // Применяем стили
+    canvas.style.width = `${gameWidth}px`;
+    canvas.style.height = `${gameHeight}px`;
+    canvas.style.left = '50%';
+    canvas.style.top = '50%';
+    canvas.style.transform = 'translate(-50%, -50%)';
+    canvas.style.position = 'absolute';
+    
+    // Принудительно обновляем все колбэки
+    resizeCallbacks.forEach(cb => cb(gameWidth, gameHeight));
+    
+    console.log(`📐 Resize: ${gameWidth}x${gameHeight}, window: ${ww}x${wh}`);
+}
     
     function onResize(cb) { 
         resizeCallbacks.push(cb); 
