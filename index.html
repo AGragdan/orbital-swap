@@ -509,9 +509,12 @@
     window.addEventListener('load', () => {
         setTimeout(() => {
             window.dispatchEvent(new Event('resize'));
-        }, 100);
+        }, 500);
     });
-    
+        // Дополнительная проверка через 1 секунду
+    setTimeout(() => {
+        window.dispatchEvent(new Event('resize'));
+    }, 1000);
     // Отслеживаем изменение размеров консоли
     if (window.ResizeObserver) {
         const observer = new ResizeObserver(() => {

@@ -571,7 +571,16 @@ const App = (function() {
         initControlButtons();
         initVisibilityHandlers();
         initStartScreen();
-        
+     
+            // ========== ПРИНУДИТЕЛЬНЫЙ РЕСАЙЗ ПОСЛЕ ЗАГРУЗКИ ==========
+    setTimeout(() => {
+        WindowManager.resize();
+    }, 200);
+    setTimeout(() => {
+        WindowManager.resize();
+    }, 800);
+    // ========================================================
+    
         isInitialized = true;
         console.log('✅ Приложение запущено!');
     }
