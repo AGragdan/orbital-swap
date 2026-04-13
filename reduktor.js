@@ -111,6 +111,7 @@ const Reduktor = (function() {
     }
     
     function addBlock(worldX, worldY, color = null) {
+        console.log('➕ addBlock вызван, добавляется блок на', worldX, worldY);
         if (!blocksContainer) return;
         
         const screenY = worldToScreen(worldY);
@@ -222,19 +223,15 @@ const Reduktor = (function() {
         e.stopPropagation();
     }
     
-    function clearBlocks() {
-        if (blocksContainer) blocksContainer.removeChildren();
-        blocks = [];
-        if (onBlocksUpdateCallback) onBlocksUpdateCallback(0);
-    }
+function clearBlocks() {
+    console.log('🧹 clearBlocks вызван, блоков до удаления:', blocks.length);
+    if (blocksContainer) blocksContainer.removeChildren();
+    blocks = [];
+    if (onBlocksUpdateCallback) onBlocksUpdateCallback(0);
+}
     
 function clearGameBlocks() {
-    // Не удаляем блоки, если мы в редакторе
-    if (isEditorMode) {
-        console.log('⚠️ clearGameBlocks пропущен, так как мы в редакторе');
-        return;
-    }
-    
+    console.log('🧹 clearGameBlocks вызван, игровых блоков до удаления:', gameBlocksSpawned.length);
     for (const b of gameBlocksSpawned) {
         if (b.sprite && !b.sprite.destroyed) stage.removeChild(b.sprite);
     }
@@ -253,14 +250,15 @@ function clearGameBlocks() {
         alert(`Сохранено ${blocks.length} блоков`);
     }
     
-    function loadBlocks() {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (!saved) return;
-        clearBlocks();
-        const data = JSON.parse(saved);
-        data.forEach(b => addBlock(b.x, b.y, b.color));
-        console.log(`Загружено ${blocks.length} блоков`);
-    }
+function loadBlocks() {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved) return;
+    console.log('📂 loadBlocks: загрузка блоков из localStorage');
+    clearBlocks();
+    const data = JSON.parse(saved);
+    data.forEach(b => addBlock(b.x, b.y, b.color));
+    console.log(`📂 Загружено ${blocks.length} блоков`);
+}
     
     function getGameBlocks() {
         return gameBlocksSpawned.map(b => ({
