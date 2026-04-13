@@ -8,7 +8,7 @@ const WindowManager = (function() {
         app = new PIXI.Application({ 
             backgroundColor: 0x6C5CE7, 
             antialias: true, 
-            resolution: window.devicePixelRatio || 1, 
+            resolution:  1, 
             autoDensity: true 
         });
         container.appendChild(app.view);
