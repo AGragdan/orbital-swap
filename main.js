@@ -574,12 +574,12 @@ const App = (function() {
         initStartScreen();
      
             // ========== ПРИНУДИТЕЛЬНЫЙ РЕСАЙЗ ПОСЛЕ ЗАГРУЗКИ ==========
-    setTimeout(() => {
-        WindowManager.resize();
-    }, 200);
-    setTimeout(() => {
-        WindowManager.resize();
-    }, 800);
+   // setTimeout(() => {
+   //     WindowManager.resize();
+   // }, 200);
+   // setTimeout(() => {
+   //     WindowManager.resize();
+   // }, 800);
     // ========================================================
 
         isInitialized = true;
