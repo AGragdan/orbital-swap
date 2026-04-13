@@ -33,36 +33,49 @@ const WindowManager = (function() {
         return app;
     }
     
-    function resize() {
-        if (!app) return;
-        
-        let ww = window.innerWidth;
-        let wh = window.innerHeight;
-        
-        let gameWidth = ww;
-        let gameHeight = gameWidth / (9/16);
-        
-        if (gameHeight > wh) {
-            gameHeight = wh;
-            gameWidth = gameHeight * (9/16);
-        }
-        
-        gameWidth = Math.floor(gameWidth);
-        gameHeight = Math.floor(gameHeight);
-        
-        app.renderer.resize(gameWidth, gameHeight);
-        
-        canvas.style.width = `${gameWidth}px`;
-        canvas.style.height = `${gameHeight}px`;
-        canvas.style.left = '50%';
-        canvas.style.top = '50%';
-        canvas.style.transform = 'translate(-50%, -50%)';
-        canvas.style.position = 'absolute';
-        
-        resizeCallbacks.forEach(cb => cb(gameWidth, gameHeight));
-        
-        console.log(`📐 Resize: ${gameWidth}x${gameHeight}, window: ${ww}x${wh}`);
+function resize() {
+    if (!app) return;
+    
+    // Получаем размеры окна
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+    
+    // Целевое соотношение 9:16 (ширина : высота)
+    const targetRatio = 9 / 16;
+    
+    let gameWidth, gameHeight;
+    
+    // Вычисляем размер игрового поля, который впишется в окно
+    if (windowWidth / windowHeight > targetRatio) {
+        // Окно шире — ограничиваем по высоте
+        gameHeight = windowHeight;
+        gameWidth = gameHeight * targetRatio;
+    } else {
+        // Окно уже — ограничиваем по ширине
+        gameWidth = windowWidth;
+        gameHeight = gameWidth / targetRatio;
     }
+    
+    // Округляем до целых
+    gameWidth = Math.floor(gameWidth);
+    gameHeight = Math.floor(gameHeight);
+    
+    // Меняем размер canvas
+    app.renderer.resize(gameWidth, gameHeight);
+    
+    // Центрируем canvas
+    canvas.style.position = 'absolute';
+    canvas.style.left = `${(windowWidth - gameWidth) / 2}px`;
+    canvas.style.top = `${(windowHeight - gameHeight) / 2}px`;
+    canvas.style.width = `${gameWidth}px`;
+    canvas.style.height = `${gameHeight}px`;
+    canvas.style.transform = 'none'; // Убираем transform, используем явные координаты
+    
+    // Вызываем все колбэки
+    resizeCallbacks.forEach(cb => cb(gameWidth, gameHeight));
+    
+    console.log(`📐 Окно: ${windowWidth}x${windowHeight} → Игра: ${gameWidth}x${gameHeight}`);
+}
     
     function onResize(cb) { 
         resizeCallbacks.push(cb); 
