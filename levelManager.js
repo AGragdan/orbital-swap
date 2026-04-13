@@ -54,45 +54,51 @@ const LevelManager = (function() {
     
     // ========== ЗАГРУЗКА ИЗ ФАЙЛА ==========
     
-    async function loadFromMaster() {
-        try {
-            const response = await fetch(`levels/${MASTER_LEVEL}.xml`);
-            if (!response.ok) {
-                console.log('Файл master уровня не найден');
-                return [];
-            }
-            
-            const xmlText = await response.text();
-            const parser = new DOMParser();
-            const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
-            
-            const relativeBlocks = [];
-            const blockElements = xmlDoc.querySelectorAll('block');
-            
-            for (let i = 0; i < blockElements.length; i++) {
-                const block = blockElements[i];
-                const relX = parseFloat(block.getAttribute('x'));
-                const relY = parseFloat(block.getAttribute('y'));
-                const color = block.getAttribute('color') ? parseInt(block.getAttribute('color')) : null;
-                
-                if (!isNaN(relX) && !isNaN(relY)) {
-                    relativeBlocks.push({ relX, relY, color });
-                }
-            }
-            
-            // Преобразуем относительные координаты в абсолютные
-            const absoluteBlocks = relativeToAbsolute(relativeBlocks);
-            
-            console.log(`📂 Загружен master уровень: ${absoluteBlocks.length} блоков`);
-            console.log(`   Размер экрана: ${getGameSize().width}x${getGameSize().height}`);
-            
-            return absoluteBlocks;
-            
-        } catch (error) {
-            console.error('Ошибка загрузки master уровня:', error);
+async function loadFromMaster() {
+    try {
+        const response = await fetch(`levels/${MASTER_LEVEL}.xml`);
+        if (!response.ok) {
+            console.log('Файл master уровня не найден');
             return [];
         }
+        
+        const xmlText = await response.text();
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+        
+        const { width, height } = getGameSize();
+        
+        // Ограничиваем максимальный размер
+        const maxSize = 1000;
+        const safeWidth = Math.min(width, maxSize);
+        const safeHeight = Math.min(height, maxSize);
+        
+        const blocks = [];
+        const blockElements = xmlDoc.querySelectorAll('block');
+        
+        for (let i = 0; i < blockElements.length; i++) {
+            const block = blockElements[i];
+            const x = parseFloat(block.getAttribute('x'));
+            const y = parseFloat(block.getAttribute('y'));
+            const color = block.getAttribute('color') ? parseInt(block.getAttribute('color')) : null;
+            
+            if (!isNaN(x) && !isNaN(y)) {
+                if (x <= 1 && y <= 1) {
+                    blocks.push({ worldX: x * safeWidth, worldY: y * safeHeight, color: color });
+                } else {
+                    blocks.push({ worldX: x, worldY: y, color: color });
+                }
+            }
+        }
+        
+        console.log(`📂 Загружено ${blocks.length} блоков, размер экрана: ${safeWidth}x${safeHeight}`);
+        return blocks;
+        
+    } catch (error) {
+        console.error('Ошибка загрузки master уровня:', error);
+        return [];
     }
+}
     
     // ========== СОХРАНЕНИЕ В ФАЙЛ ==========
     
