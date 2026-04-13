@@ -91,7 +91,8 @@ function resize() {
         getStage, 
         getWidth, 
         getHeight, 
-        getCanvas 
+        getCanvas, 
+        resize
     };
 })();
 
@@ -580,7 +581,7 @@ const App = (function() {
         WindowManager.resize();
     }, 800);
     // ========================================================
-    
+
         isInitialized = true;
         console.log('✅ Приложение запущено!');
     }
