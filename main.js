@@ -538,28 +538,13 @@ UI.setRestartCallback(() => {
     }
 });
         
-        WindowManager.onResize((nw, nh) => {
-            BackgroundAndParticles.resize(nw, nh);
-            GameObjects.resize(nw, nh);
-            Reduktor.resize(nw, nh);
-           // Reduktor.resizeBlocks(nw, nh); 
-            updateBottomPanelSize();
-        });
-        
-        if (w && h) {
-            BackgroundAndParticles.resize(w, h);
-            GameObjects.resize(w, h);
-            Reduktor.resize(w, h);
-        }
-        
-        initEditorButtons();
-        initControlButtons();
-        initVisibilityHandlers();
-        initStartScreen();
-        
-        isInitialized = true;
-        console.log('✅ Приложение запущено!');
-    }
+WindowManager.onResize((nw, nh) => {
+    BackgroundAndParticles.resize(nw, nh);
+    GameObjects.resize(nw, nh);
+    Reduktor.resize(nw, nh);
+    // GameObjects.updatePositions();  // УДАЛИТЕ ЭТУ СТРОКУ
+    updateBottomPanelSize();
+});
     
     function initStartScreen() {
         const startOverlay = document.getElementById('startOverlay');
