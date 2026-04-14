@@ -601,67 +601,77 @@ const App = (function() {
         }
     }
     
-    function startGame() {
-        if (!isStartScreenVisible) return;
-        isStartScreenVisible = false;
-        
-        const startOverlay = document.getElementById('startOverlay');
-        if (startOverlay) {
-            startOverlay.classList.add('hide');
-            setTimeout(() => {
-                startOverlay.style.display = 'none';
-            }, 300);
-        }
-        
-        isGameMode = true;
-        isPaused = false;
-        
-        document.getElementById('editorPanel').style.display = 'none';
-        document.getElementById('topPanel').style.display = 'flex';
-        document.getElementById('bottomPanelWrapper').style.display = 'block';
-        document.getElementById('modeIndicator').textContent = '🎮 РЕЖИМ: ИГРА';
-        
-        updateBottomPanelSize();
-        
-        const musicBtn = document.getElementById('musicBtn');
-        const soundBtn = document.getElementById('soundBtn');
-        
-        if (musicBtn) {
-            musicBtn.textContent = '🎵';
-            musicBtn.classList.add('active');
-        }
-        if (soundBtn) {
-            soundBtn.textContent = '🔊';
-            soundBtn.classList.add('active');
-        }
-        
-        if (!audioActivated) {
-            AudioManager.activate();
-            audioActivated = true;
-        }
-        
-        AudioManager.setMusicEnabled(true);
-        AudioManager.setSfxEnabled(true);
-        
-        GameObjects.showCircles();
-        Reduktor.disableEditorMode();
-        
-        LevelManager.loadFromMaster().then(masterBlocks => {
-            console.log('🎮 loadFromMaster вернул блоков:', masterBlocks.length);
-            if (masterBlocks.length > 0) {
-                console.log('🎮 Первые 3 блока из masterBlocks:', masterBlocks.slice(0,3));
-                Reduktor.clearBlocks();
-                masterBlocks.forEach(block => {
-                    Reduktor.addBlock(block.worldX, block.worldY, block.color);
-                });
-                console.log(`🎮 Загружен master уровень (${masterBlocks.length} блоков) для игры`);
-            } else {
-                Reduktor.clearBlocks();
-            }
-            Reduktor.startFalling();
-            GameObjects.restart();
-        });
+    async function startGame() {
+    // Ждём, пока размеры экрана станут нормальными
+    let width = WindowManager.getWidth();
+    let attempts = 0;
+    while (width < 100 && attempts < 20) {
+        await new Promise(r => setTimeout(r, 50));
+        width = WindowManager.getWidth();
+        attempts++;
     }
+    console.log(`📐 Размеры экрана перед загрузкой: ${width}x${WindowManager.getHeight()}`);
+    
+    if (!isStartScreenVisible) return;
+    isStartScreenVisible = false;
+    
+    const startOverlay = document.getElementById('startOverlay');
+    if (startOverlay) {
+        startOverlay.classList.add('hide');
+        setTimeout(() => {
+            startOverlay.style.display = 'none';
+        }, 300);
+    }
+    
+    isGameMode = true;
+    isPaused = false;
+    
+    document.getElementById('editorPanel').style.display = 'none';
+    document.getElementById('topPanel').style.display = 'flex';
+    document.getElementById('bottomPanelWrapper').style.display = 'block';
+    document.getElementById('modeIndicator').textContent = '🎮 РЕЖИМ: ИГРА';
+    
+    updateBottomPanelSize();
+    
+    const musicBtn = document.getElementById('musicBtn');
+    const soundBtn = document.getElementById('soundBtn');
+    
+    if (musicBtn) {
+        musicBtn.textContent = '🎵';
+        musicBtn.classList.add('active');
+    }
+    if (soundBtn) {
+        soundBtn.textContent = '🔊';
+        soundBtn.classList.add('active');
+    }
+    
+    if (!audioActivated) {
+        AudioManager.activate();
+        audioActivated = true;
+    }
+    
+    AudioManager.setMusicEnabled(true);
+    AudioManager.setSfxEnabled(true);
+    
+    GameObjects.showCircles();
+    Reduktor.disableEditorMode();
+    
+    LevelManager.loadFromMaster().then(masterBlocks => {
+        console.log('🎮 loadFromMaster вернул блоков:', masterBlocks.length);
+        if (masterBlocks.length > 0) {
+            console.log('🎮 Первые 3 блока из masterBlocks:', masterBlocks.slice(0,3));
+            Reduktor.clearBlocks();
+            masterBlocks.forEach(block => {
+                Reduktor.addBlock(block.worldX, block.worldY, block.color);
+            });
+            console.log(`🎮 Загружен master уровень (${masterBlocks.length} блоков) для игры`);
+        } else {
+            Reduktor.clearBlocks();
+        }
+        Reduktor.startFalling();
+        GameObjects.restart();
+    });
+}
     
     function startEditor() {
         if (!isStartScreenVisible) return;
