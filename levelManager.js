@@ -85,7 +85,6 @@ async function loadFromMaster() {
                 if (x <= 1 && y <= 1) {
                     worldX = x * currentWidth;
                     worldY = y * currentHeight;
-                    console.log(`🔄 Конвертация относительных координат: (${x}, ${y}) → (${worldX}, ${worldY})`);
                 } else {
                     worldX = x;
                     worldY = y;
