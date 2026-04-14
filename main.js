@@ -647,7 +647,9 @@ const App = (function() {
         Reduktor.disableEditorMode();
         
         LevelManager.loadFromMaster().then(masterBlocks => {
+            console.log('🎮 loadFromMaster вернул блоков:', masterBlocks.length);
             if (masterBlocks.length > 0) {
+                console.log('🎮 Первые 3 блока из masterBlocks:', masterBlocks.slice(0,3));
                 Reduktor.clearBlocks();
                 masterBlocks.forEach(block => {
                     Reduktor.addBlock(block.worldX, block.worldY, block.color);

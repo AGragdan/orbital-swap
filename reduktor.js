@@ -144,7 +144,7 @@ function resizeBlocksToNewSize(newWidth, newHeight) {
     
     function addBlock(worldX, worldY, color = null) {
         if (!blocksContainer) return;
-        
+        console.log(`➕ addBlock: мир (${worldX}, ${worldY}) → экран (${worldX}, ${worldToScreen(worldY)})`); 
         const screenY = worldToScreen(worldY);
         const sprite = createBlockSprite(worldX, screenY, color);
         const finalColor = color || Theme.getRandomBlockColor();
@@ -500,9 +500,7 @@ function resize(w, h) {
     updateBlockSize();
     
     if (blocks.length === 0) return;
-       // ВРЕМЕННО ОТКЛЮЧАЕМ ПЕРЕСЧЁТ КООРДИНАТ
-    /*
-    
+   
     const scaleX = w / oldWidth;
     const scaleY = h / oldHeight;
     
@@ -512,7 +510,7 @@ function resize(w, h) {
         block.sprite.x = block.worldX;
         block.sprite.y = worldToScreen(block.worldY);
     });
-   */ 
+    
     console.log(`📏 Блоки пересчитаны: ${oldWidth}x${oldHeight} → ${w}x${h}`);
 }
     
