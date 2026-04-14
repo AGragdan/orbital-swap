@@ -114,6 +114,7 @@ function pauseScoreCounter() {
     if (scoreInterval) {
         clearInterval(scoreInterval);
         scoreInterval = null;
+        console.log('⏸️ Счётчик остановлен');
     }
 }
 
@@ -125,6 +126,7 @@ function resumeScoreCounter() {
             if (onScoreUpdateCallback) onScoreUpdateCallback(score);
         }
     }, 1000);
+    console.log('▶️ Счётчик запущен');
 }
 
 function updateGeometry() {
