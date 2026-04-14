@@ -500,6 +500,8 @@ function resize(w, h) {
     updateBlockSize();
     
     if (blocks.length === 0) return;
+       // ВРЕМЕННО ОТКЛЮЧАЕМ ПЕРЕСЧЁТ КООРДИНАТ
+    /*
     
     const scaleX = w / oldWidth;
     const scaleY = h / oldHeight;
@@ -509,9 +511,8 @@ function resize(w, h) {
         block.worldY = block.worldY * scaleY;
         block.sprite.x = block.worldX;
         block.sprite.y = worldToScreen(block.worldY);
-        console.log(`📐 resize: блок (${oldX}, ${oldY}) → (${block.sprite.x}, ${block.sprite.y})`);
     });
-    
+   */ 
     console.log(`📏 Блоки пересчитаны: ${oldWidth}x${oldHeight} → ${w}x${h}`);
 }
     
