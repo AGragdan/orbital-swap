@@ -131,6 +131,7 @@ function resizeBlocksToNewSize(newWidth, newHeight) {
         
         blocks.forEach(block => {
             block.sprite.y = worldToScreen(block.worldY);
+            console.log(`🎚️ setSector: блок Y ${oldY} → ${block.sprite.y}`);
         });
         
         document.querySelectorAll('.sector-btn').forEach(btn => {
@@ -142,7 +143,6 @@ function resizeBlocksToNewSize(newWidth, newHeight) {
     }
     
     function addBlock(worldX, worldY, color = null) {
-        console.log(`➕ addBlock: ${worldX}, ${worldY}`);
         if (!blocksContainer) return;
         
         const screenY = worldToScreen(worldY);
@@ -509,6 +509,7 @@ function resize(w, h) {
         block.worldY = block.worldY * scaleY;
         block.sprite.x = block.worldX;
         block.sprite.y = worldToScreen(block.worldY);
+        console.log(`📐 resize: блок (${oldX}, ${oldY}) → (${block.sprite.x}, ${block.sprite.y})`);
     });
     
     console.log(`📏 Блоки пересчитаны: ${oldWidth}x${oldHeight} → ${w}x${h}`);
