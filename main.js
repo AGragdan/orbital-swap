@@ -467,7 +467,24 @@ function updateGeometry() {
     
     console.log(`🔄 GameObjects: размер ${currentWidth}x${currentHeight}, радиус ${circleRadius}`);
 }
-    
+ 
+function pauseScore() {
+    if (scoreInterval) {
+        clearInterval(scoreInterval);
+        scoreInterval = null;
+    }
+}
+
+function resumeScore() {
+    if (scoreInterval) return;
+    scoreInterval = setInterval(() => {
+        if (isGameActive) {
+            score++;
+            if (onScoreUpdateCallback) onScoreUpdateCallback(score);
+        }
+    }, 1000);
+}
+
     return { 
         init, 
         resize,
@@ -478,6 +495,8 @@ function updateGeometry() {
         hideCircles, 
         showCircles, 
         stopGameLogic, 
+        pauseScore,     
+        resumeScore, 
         setOnGameOver, 
         setOnScoreUpdate 
     };
@@ -805,6 +824,7 @@ function updateBottomPanelSize() {
         isPaused = true;
         
         GameObjects.stopGameLogic();
+        GameObjects.pauseScore();
         Reduktor.pauseFalling();
         AudioManager.pauseGame();
         
@@ -828,6 +848,7 @@ function updateBottomPanelSize() {
         }
         
         GameObjects.resumeGameLogic();
+        GameObjects.resumeScore();
         Reduktor.resumeFalling();
         AudioManager.resumeGame();
         

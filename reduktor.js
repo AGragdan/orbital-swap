@@ -143,8 +143,7 @@ function resizeBlocksToNewSize(newWidth, newHeight) {
     }
     
     function addBlock(worldX, worldY, color = null) {
-        if (!blocksContainer) return;
-        console.log(`➕ addBlock: мир (${worldX}, ${worldY}) → экран (${worldX}, ${worldToScreen(worldY)})`); 
+        if (!blocksContainer) return; 
         const screenY = worldToScreen(worldY);
         const sprite = createBlockSprite(worldX, screenY, color);
         const finalColor = color || Theme.getRandomBlockColor();
