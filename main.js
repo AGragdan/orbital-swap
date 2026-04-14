@@ -107,28 +107,7 @@ const GameObjects = (function() {
     let lastTimestamp = 0, animationRunning = false, animationId = null;
     let isGameActive = true, onGameOverCallback = null;
     let score = 0, scoreInterval = null, onScoreUpdateCallback = null;
-    let lastPointerTime = 0;
-    const POINTER_DELAY = 100;
     
-function pauseScoreCounter() {
-    if (scoreInterval) {
-        clearInterval(scoreInterval);
-        scoreInterval = null;
-        console.log('⏸️ Счётчик остановлен');
-    }
-}
-
-function resumeScoreCounter() {
-    if (scoreInterval) return;
-    scoreInterval = setInterval(() => {
-        if (isGameActive) {
-            score++;
-            if (onScoreUpdateCallback) onScoreUpdateCallback(score);
-        }
-    }, 1000);
-    console.log('▶️ Счётчик запущен');
-}
-
 function updateGeometry() {
     circleRadius = Theme.getCircleRadius();
     orbitRadius = Theme.getOrbitDistance();
@@ -305,28 +284,25 @@ function updateGeometry() {
         }
     }
     
-function restart() {
-    isGameActive = true;
-    distanceMultiplier = 1.50;
-    updateGeometry();
-    recreateCircles();
-    orbitingObject = 'circle2';
-    pivotX = currentWidth / 2;
-    pivotY = currentHeight * Theme.gameStart.centerY;
-    rotationAngle = 0;
-    if (circle1 && circle2) {
-        circle1.x = pivotX;
-        circle1.y = pivotY;
-        circle2.x = pivotX + orbitRadius;
-        circle2.y = pivotY;
+    function restart() {
+        isGameActive = true;
+        distanceMultiplier = 1.50;
+        updateGeometry();
+        recreateCircles();
+        orbitingObject = 'circle2';
+        pivotX = currentWidth / 2;
+        pivotY = currentHeight * Theme.gameStart.centerY;
+        rotationAngle = 0;
+        if (circle1 && circle2) {
+            circle1.x = pivotX;
+            circle1.y = pivotY;
+            circle2.x = pivotX + orbitRadius;
+            circle2.y = pivotY;
+        }
+        Reduktor.startFalling();
+        startScoreCounter();
+        startAnimation();
     }
-    Reduktor.startFalling();
-    
-    // Останавливаем старый счётчик, если есть
-    if (scoreInterval) clearInterval(scoreInterval);
-    startScoreCounter();
-    startAnimation();
-}
     
     function swapRoles() {
         if (!isGameActive) return;
@@ -364,39 +340,6 @@ function restart() {
         updateOrbitPosition();
     }
     
-function onCanvasPointerDown(e) {
-    // Предотвращаем повторные срабатывания
-    const now = Date.now();
-    if (now - lastPointerTime < POINTER_DELAY) return;
-    lastPointerTime = now;
-    
-    // Отменяем стандартное поведение (чтобы не было зума)
-    e.preventDefault();
-    
-    if (!isGameActive) return;
-    if (!circle1 || !circle2) return;
-    
-    // Получаем координаты касания
-    let clientX, clientY;
-    if (e.touches) {
-        clientX = e.touches[0].clientX;
-        clientY = e.touches[0].clientY;
-    } else {
-        clientX = e.clientX;
-        clientY = e.clientY;
-    }
-    
-    const canvas = WindowManager.getCanvas();
-    const rect = canvas.getBoundingClientRect();
-    const canvasX = (clientX - rect.left) * (canvas.width / rect.width);
-    const canvasY = (clientY - rect.top) * (canvas.height / rect.height);
-    
-    // Проверка, что клик в пределах canvas
-    if (canvasX >= 0 && canvasX <= canvas.width && canvasY >= 0 && canvasY <= canvas.height) {
-        swapRoles();
-    }
-}
-
     function onCanvasClick(e) {
         if (!isGameActive) return;
         if (!circle1 || !circle2) return;
@@ -423,18 +366,13 @@ function onCanvasPointerDown(e) {
         }
     }
     
-function initEventHandlers() {
-    const canvas = WindowManager.getCanvas();
-    if (canvas) {
-        // Удаляем старые обработчики, если были
-        canvas.removeEventListener('click', onCanvasClick);
-        canvas.removeEventListener('touchstart', onCanvasClick);
-        
-        // Добавляем новые
-        canvas.addEventListener('pointerdown', onCanvasPointerDown);
-        canvas.addEventListener('touchstart', onCanvasPointerDown, { passive: false });
+    function initEventHandlers() {
+        const canvas = WindowManager.getCanvas();
+        if (canvas) {
+            canvas.addEventListener('click', onCanvasClick);
+            canvas.addEventListener('touchstart', onCanvasClick, { passive: false });
+        }
     }
-}
     
     function setOnGameOver(cb) { 
         onGameOverCallback = cb; 
@@ -540,8 +478,6 @@ function initEventHandlers() {
         hideCircles, 
         showCircles, 
         stopGameLogic, 
-        pauseScoreCounter,
-        resumeScoreCounter,
         setOnGameOver, 
         setOnScoreUpdate 
     };
@@ -849,39 +785,41 @@ function updateBottomPanelSize() {
         });
     }
     
-function pauseGame() {
-    if (isPaused) return;
-    if (!isGameMode) return;
-    
-    isPaused = true;
-    
-    GameObjects.stopAnimation();
-    GameObjects.pauseScoreCounter();  // добавляем
-    Reduktor.pauseFalling();
-    AudioManager.pauseGame();
-    
-    const pauseOverlay = document.getElementById('pauseOverlay');
-    if (pauseOverlay) {
-        pauseOverlay.classList.add('active');
-    }
-}
-    
-function resumeGame() {
-    if (!isPaused) return;
-    if (!isGameMode) return;
-    
-    isPaused = false;
-    
-    const pauseOverlay = document.getElementById('pauseOverlay');
-    if (pauseOverlay) {
-        pauseOverlay.classList.remove('active');
+    function pauseGame() {
+        if (isPaused) return;
+        if (!isGameMode) return;
+        
+        isPaused = true;
+        
+        GameObjects.stopGameLogic();
+        Reduktor.pauseFalling();
+        AudioManager.pauseGame();
+        
+        const pauseOverlay = document.getElementById('pauseOverlay');
+        if (pauseOverlay) {
+            pauseOverlay.classList.add('active');
+        }
+        
+        console.log('⏸️ Игра на паузе');
     }
     
-    GameObjects.startAnimation();
-    GameObjects.resumeScoreCounter();  // добавляем
-    Reduktor.resumeFalling();
-    AudioManager.resumeGame();
-}
+    function resumeGame() {
+        if (!isPaused) return;
+        if (!isGameMode) return;
+        
+        isPaused = false;
+        
+        const pauseOverlay = document.getElementById('pauseOverlay');
+        if (pauseOverlay) {
+            pauseOverlay.classList.remove('active');
+        }
+        
+        GameObjects.resumeGameLogic();
+        Reduktor.resumeFalling();
+        AudioManager.resumeGame();
+        
+        console.log('▶️ Игра продолжена');
+    }
     
     function initEditorButtons() {
         const saveLocalBtn = document.getElementById('saveLocalBtn');
