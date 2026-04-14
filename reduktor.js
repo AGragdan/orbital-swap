@@ -142,6 +142,7 @@ function resizeBlocksToNewSize(newWidth, newHeight) {
     }
     
     function addBlock(worldX, worldY, color = null) {
+        console.log(`➕ addBlock: ${worldX}, ${worldY}`);
         if (!blocksContainer) return;
         
         const screenY = worldToScreen(worldY);
