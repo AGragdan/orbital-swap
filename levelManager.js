@@ -66,15 +66,8 @@ async function loadFromMaster() {
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
         
-        // Эталонный размер, для которого созданы координаты в XML
-        const REFERENCE_WIDTH = 540;
-        const REFERENCE_HEIGHT = 960;
-        
         const currentWidth = WindowManager.getWidth();
         const currentHeight = WindowManager.getHeight();
-        
-        const scaleX = currentWidth / REFERENCE_WIDTH;
-        const scaleY = currentHeight / REFERENCE_HEIGHT;
         
         const blocks = [];
         const blockElements = xmlDoc.querySelectorAll('block');
@@ -86,16 +79,23 @@ async function loadFromMaster() {
             const color = block.getAttribute('color') ? parseInt(block.getAttribute('color')) : null;
             
             if (!isNaN(x) && !isNaN(y)) {
-                blocks.push({ 
-                    worldX: x * scaleX, 
-                    worldY: y * scaleY, 
-                    color: color 
-                });
+                let worldX, worldY;
+                
+                // Если координаты меньше 1 — это относительные, нужно умножить
+                if (x <= 1 && y <= 1) {
+                    worldX = x * currentWidth;
+                    worldY = y * currentHeight;
+                    console.log(`🔄 Конвертация относительных координат: (${x}, ${y}) → (${worldX}, ${worldY})`);
+                } else {
+                    worldX = x;
+                    worldY = y;
+                }
+                
+                blocks.push({ worldX, worldY, color });
             }
         }
         
         console.log(`📂 Загружен master уровень: ${blocks.length} блоков`);
-        console.log(`   Масштаб: X=${scaleX.toFixed(2)}, Y=${scaleY.toFixed(2)}`);
         console.log(`   Размер экрана: ${currentWidth}x${currentHeight}`);
         
         return blocks;
