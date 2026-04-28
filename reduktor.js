@@ -124,30 +124,23 @@ function resizeBlocksToNewSize(newWidth, newHeight) {
         }
     }
     
-function setSector(sector) {
-    console.log('🎚️ setSector вызван, сектор:', sector, 'isEditorMode:', isEditorMode);
-    
-    if (!isEditorMode) {
-        console.log('❌ Редактор не активен, переключение сектора заблокировано');
-        return;
+    function setSector(sector) {
+        if (!isEditorMode) return;
+        if (sector === currentSector) return;
+        currentSector = Math.min(9, Math.max(0, sector));
+        
+        blocks.forEach(block => {
+            block.sprite.y = worldToScreen(block.worldY);
+            console.log(`🎚️ setSector: блок Y ${oldY} → ${block.sprite.y}`);
+        });
+        
+        document.querySelectorAll('.sector-btn').forEach(btn => {
+            const btnSector = parseInt(btn.dataset.sector);
+            btn.classList.toggle('active', btnSector === currentSector);
+        });
+        
+        console.log(`Сектор ${currentSector}, смещение = ${getCurrentOffset()}`);
     }
-    if (sector === currentSector) return;
-    
-    currentSector = Math.min(9, Math.max(0, sector));
-    
-    console.log('✅ Переключаем на сектор:', currentSector);
-    
-    blocks.forEach(block => {
-        block.sprite.y = worldToScreen(block.worldY);
-    });
-    
-    document.querySelectorAll('.sector-btn').forEach(btn => {
-        const btnSector = parseInt(btn.dataset.sector);
-        btn.classList.toggle('active', btnSector === currentSector);
-    });
-    
-    console.log(`Сектор ${currentSector}, смещение = ${getCurrentOffset()}`);
-}
     
     function addBlock(worldX, worldY, color = null) {
         if (!blocksContainer) return; 
