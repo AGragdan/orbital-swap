@@ -1,19 +1,71 @@
 // ========================
-// МОДУЛЬ: Победа (Victory)
-// Добавляет механику победы в игру
+// МОДУЛЬ: Победа и Режим разработчика (Victory + DevMode)
 // ========================
 
-// Добавляем функцию проверки победы в GameObjects
+// Режим разработчика (бессмертие)
+let devMode = false;
+
+// Функция для включения/выключения режима разработчика
+function toggleDevMode() {
+    devMode = !devMode;
+    console.log(devMode ? '🛡️ РЕЖИМ РАЗРАБОТЧИКА ВКЛЮЧЁН (бессмертие)' : '🔴 РЕЖИМ РАЗРАБОТЧИКА ВЫКЛЮЧЁН');
+    
+    // Визуальный индикатор
+    let indicator = document.getElementById('devModeIndicator');
+    if (!indicator) {
+        indicator = document.createElement('div');
+        indicator.id = 'devModeIndicator';
+        indicator.style.cssText = `
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            color: #FFD700;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-family: monospace;
+            z-index: 10000;
+            pointer-events: none;
+        `;
+        document.body.appendChild(indicator);
+    }
+    indicator.textContent = devMode ? '🛡️ DEV MODE' : '';
+    indicator.style.display = devMode ? 'block' : 'none';
+}
+
+// Добавляем функцию победы в GameObjects
 (function() {
     if (typeof GameObjects === 'undefined') {
         console.error('GameObjects не найден');
         return;
     }
     
-    // Сохраняем оригинальную функцию updateOrbitPosition
+    // Сохраняем оригинальные функции
+    const originalCheckCollision = GameObjects.checkCollision;
+    const originalTriggerGameOver = GameObjects.triggerGameOver;
     const originalUpdateOrbitPosition = GameObjects.updateOrbitPosition;
     
-    // Добавляем проверку победы
+    // Переопределяем проверку коллизии (бессмертие)
+    if (originalCheckCollision) {
+        GameObjects.checkCollision = function() {
+            if (devMode) return false;
+            return originalCheckCollision.call(this);
+        };
+    }
+    
+    // Переопределяем Game Over (бессмертие)
+    if (originalTriggerGameOver) {
+        GameObjects.triggerGameOver = function() {
+            if (devMode) {
+                console.log('🛡️ Бессмертие: Game Over заблокирован');
+                return;
+            }
+            originalTriggerGameOver.call(this);
+        };
+    }
+    
+    // Проверка победы
     GameObjects.checkVictory = function() {
         if (!GameObjects.isGameActive) return false;
         
@@ -62,7 +114,7 @@
     // Перехватываем updateOrbitPosition
     if (originalUpdateOrbitPosition) {
         GameObjects.updateOrbitPosition = function() {
-            originalUpdateOrbitPosition();
+            originalUpdateOrbitPosition.call(this);
             GameObjects.checkVictory();
         };
     }
@@ -160,4 +212,8 @@ if (typeof UI !== 'undefined') {
     };
 }
 
-console.log('🎉 Victory module loaded');
+// Добавляем глобальную функцию для включения режима разработчика
+window.toggleDevMode = toggleDevMode;
+window.devMode = () => { toggleDevMode(); };
+
+console.log('🎉 Victory module loaded. Для режима разработчика введи в консоль: devMode()');
